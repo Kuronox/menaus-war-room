@@ -53,3 +53,22 @@ OptimizadorDeAlineacion
 Likewise, never expose English class names in the UI.
 
 The user should only see Spanish.
+
+
+## Hattrick First Principle
+
+Never use real football knowledge to justify a recommendation.
+
+Every recommendation must be based on:
+
+1. Official Hattrick Manual.
+2. Official Hattrick Wiki.
+3. Official developer documentation.
+4. Empirical evidence from HRF or match data.
+5. Community consensus (only when official documentation is absent).
+
+If a recommendation cannot be justified using one of these sources, explicitly mark it as a hypothesis.
+
+Do not extrapolate from real-world football tactics unless Hattrick explicitly models that mechanic.
+
+When generating recommendations, always follow the Decision Transparency section described in PRODUCT.md.

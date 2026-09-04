@@ -119,3 +119,62 @@ Example:
 🟡 Rival attacks through the wings
 
 The manager should know exactly what needs to be done this week.
+
+## Decision Transparency
+
+# Decision Transparency
+
+Uno de los principios fundamentales de Menaus War Room es que todas las recomendaciones deben ser explicables.
+
+El sistema nunca debe limitarse a indicar una acción; también debe explicar por qué la recomienda y cuál es el nivel de confianza de dicha recomendación.
+
+Cada recomendación deberá incluir:
+
+## Recommendation
+
+La acción sugerida.
+
+## Why
+
+Explicación del razonamiento.
+
+## Evidence
+
+Clasificación de las fuentes utilizadas:
+
+★★★★★ Evidencia oficial
+- Manual oficial de Hattrick
+- Hattrick Wiki
+- Dev Blogs
+- Reglas oficiales
+
+★★★★☆ Evidencia empírica
+- HRF
+- Historial del equipo
+- Estadísticas propias
+
+★★★☆☆ Consenso de la comunidad
+- Foros
+- Reddit
+- HO!
+- Foxtrick
+- Experiencias ampliamente aceptadas
+
+★★☆☆☆ Inferencia
+- Deducción lógica basada en evidencia parcial.
+
+★☆☆☆☆ Hipótesis
+- No existe evidencia suficiente.
+- Debe marcarse explícitamente como especulación.
+
+## Confidence
+
+Nivel de confianza:
+
+Muy Alta
+Alta
+Media
+Baja
+Hipótesis
+
+Nunca presentar una hipótesis como si fuera un hecho.
