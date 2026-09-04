@@ -12,7 +12,8 @@
   "scripts": {
     "build": "nest build",
     "test": "vitest run",
-    "lint": "eslint \"src/**/*.ts\""
+    "lint": "eslint \"src/**/*.ts\"",
+    "analyze": "nest build && node dist/presentation/analyze.js"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",
