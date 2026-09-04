@@ -82,8 +82,7 @@ Cualquier fuente nueva (otra herramienta de la comunidad, otro formato de export
 |---|---|
 | **Domain** | Entidades, Value Objects, Enumeraciones, reglas de negocio de Hattrick (canonical-domain-model.md) — no sabe que existen adaptadores |
 | **Application** | El caso de uso "importar datos de una fuente": orquesta invocar un adaptador (a través del Import Port), pasar el resultado por las reglas de validación, y persistir/publicar los snapshots resultantes. Conoce el Import Port (la abstracción), no conoce ningún adaptador concreto |
-| **Infrastructure** | Aquí viven `HRFAdapter`, `CHPPAdapter`, `ManualEntryAdapter` y cualquier otro — cada uno depende del dominio (para producir sus contratos) pero el dominio no depende de ninguno |
-| **Data** | Persistencia de los snapshots ya validados — explícitamente fuera de alcance de este Sprint (no se diseña base de datos aquí) |
+| **Infrastructure** | Aquí viven `HRFAdapter`, `CHPPAdapter`, `ManualEntryAdapter` y cualquier otro — cada uno depende del dominio (para producir sus contratos) pero el dominio no depende de ninguno. La persistencia de los snapshots ya validados también vive aquí, como un adaptador más (`infrastructure/persistence/`) — no como una capa aparte — y sigue explícitamente fuera de alcance de este Sprint (no se diseña base de datos aquí, ver `DECISIONS.md` D-012) |
 
 Esta tabla formaliza, para la importación de datos específicamente, la regla que `ARCHITECTURE.md` ya declara en general ("el parser debe estar aislado", "la lógica de negocio nunca depende del HRF") y la extiende explícitamente a CHPP y a cualquier fuente futura.
 

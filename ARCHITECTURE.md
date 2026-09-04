@@ -3,10 +3,12 @@
 The project follows Clean Architecture, with dependencies pointing **inward** only:
 
 ```
-Presentation ──▶ Application ──▶ Domain ◀── Infrastructure ◀── Data
+Presentation ──▶ Application ──▶ Domain ◀── Infrastructure
 ```
 
-Domain is the innermost layer. It defines the [Canonical Domain Model](docs/canonical-domain-model.md) and depends on nothing else. Infrastructure (parsers, adapters, persistence) depends on Domain — never the other way around — by implementing interfaces/ports that Domain and Application define. This is Dependency Inversion, not a straight linear chain: Domain never imports, references, or has any awareness of Infrastructure, Presentation, or Data.
+Domain is the innermost layer. It defines the [Canonical Domain Model](docs/canonical-domain-model.md) and depends on nothing else. Infrastructure depends on Domain — never the other way around — by implementing interfaces/ports that Domain and Application define. This is Dependency Inversion, not a straight linear chain: Domain never imports, references, or has any awareness of Infrastructure or Presentation.
+
+Persistence is not a separate layer: a database repository is, architecturally, an adapter like any other (see [source-adapters.md](docs/source-adapters.md)) — it implements a port, lives inside Infrastructure, and Domain never knows it exists. There is no `Data` layer sitting beside Infrastructure; when persistence is designed, it lives at `infrastructure/persistence/` (see `DECISIONS.md` D-012).
 
 ---
 
@@ -28,8 +30,7 @@ The system is designed, from the Domain outward, to be source-agnostic — able 
 
 - **Domain**: [Canonical Domain Model](docs/canonical-domain-model.md) — Entities, Value Objects, Enumerations, Aggregates. Knows nothing about any source.
 - **Application**: the import use case — invokes a Source Adapter through the Import Port, applies [Validation Rules](docs/validation-rules.md), and passes accepted [Data Contracts](docs/data-contracts.md) onward.
-- **Infrastructure**: one adapter per source. Today: `HRFAdapter`, per the [HRF Mapping Strategy](docs/hrf-mapping-strategy.md). Future: `CHPPAdapter`, `ManualEntryAdapter`, others — see [source-adapters.md](docs/source-adapters.md).
-- **Data**: persistence of already-validated snapshots — not yet designed (out of scope until a later Sprint).
+- **Infrastructure**: one adapter per source. Today: `HRFAdapter`, per the [HRF Mapping Strategy](docs/hrf-mapping-strategy.md). Future: `CHPPAdapter`, `ManualEntryAdapter`, others — see [source-adapters.md](docs/source-adapters.md). Persistence of already-validated snapshots will live here too, as a persistence adapter — not yet designed (out of scope until a later Sprint).
 
 Every accepted data point is tied to an `ImportBatch` recording its source and observation time — the Domain models "stable identity over time" (Club, Player, Coach...) separately from "point-in-time snapshots" (economy, training, condition, lineup...), because a single import (from any source) is a snapshot, and historical analysis requires accumulating snapshots, not overwriting state.
 
@@ -42,3 +43,13 @@ Current source of truth (data-trust policy — see [DECISIONS.md](DECISIONS.md) 
 3. Manual opponent data
 
 This policy is unchanged by the source-agnostic architecture above: HRF remains the authoritative source for the club's own data today. The architecture simply avoids hard-coding that policy into the Domain, so it can extend to additional sources later without a redesign.
+
+---
+
+## Technology stack
+
+The layers above are implemented, once approved, with the stack recorded in [TECH_STACK.md](TECH_STACK.md): TypeScript (strict), Node.js LTS, NestJS, pnpm, Vitest, ESLint, Prettier.
+
+NestJS's module boundaries are what realize the layer diagram in practice: Domain, Application and Infrastructure become distinct modules, and the Import Port ([source-adapters.md](docs/source-adapters.md)) becomes an injectable abstraction — `HRFAdapter` today, `CHPPAdapter` / `ManualEntryAdapter` later — that Application depends on by interface only, never by concrete implementation. This is Dependency Inversion (see above) expressed through Nest's dependency-injection container, not a departure from it.
+
+No ORM is introduced with this stack — see `TECH_STACK.md` and `DECISIONS.md` D-011 — until persistence is actually designed.
