@@ -54,4 +54,21 @@ export class HrfAdapter {
       name: basics.entries.teamName,
     };
   }
+
+  /**
+   * Counts player sections (`[player<ID>]`), excluding the club's coach —
+   * Sprint 0 found the coach is also represented as a `[player<ID>]`
+   * block. The exclusion relies on `[xtra].TrainerID` (✅-confirmed in
+   * Sprint 0); if that reference is unavailable, falls back to counting
+   * every `[player<ID>]` section, coach included.
+   */
+  countPlayers(sections: HrfSections): number {
+    const xtra = sections.find((section) => section.name === 'xtra');
+    const trainerId = xtra?.entries.TrainerID;
+    const trainerSectionName = trainerId === undefined ? undefined : `player${trainerId}`;
+
+    return sections.filter(
+      (section) => /^player\d+$/.test(section.name) && section.name !== trainerSectionName,
+    ).length;
+  }
 }

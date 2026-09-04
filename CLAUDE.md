@@ -72,3 +72,12 @@ If a recommendation cannot be justified using one of these sources, explicitly m
 Do not extrapolate from real-world football tactics unless Hattrick explicitly models that mechanic.
 
 When generating recommendations, always follow the Decision Transparency section described in PRODUCT.md.
+
+
+## Development Priority
+
+Prioritize vertical slices over horizontal expansion of the domain.
+
+Whenever possible, ship one executable capability before adding new abstractions.
+
+A new entity, Value Object, or layer is justified by a concrete need already proven by a working slice — not by anticipated future coverage of the domain model. See DECISIONS.md for abstractions deliberately deferred under this rule (`AggregateRoot`, `DomainEvent`, `Result<T>`, the Import Port).

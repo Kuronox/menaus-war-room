@@ -249,6 +249,25 @@ Condition to resolve: introduce the Import Port when a second real import source
 
 See: `backend/src/application/import-hrf.use-case.ts`, [source-adapters.md](docs/source-adapters.md), D-008
 
+---
+
+## D-016
+
+Date: 2026-09-04
+
+Decision:
+`backend/src/presentation/analyze.ts` (Presentation) constructs and composes `HrfFileReader`, `HrfSectionParser` and `HrfAdapter` (Infrastructure) directly, instead of going through `ImportHrfUseCase` (Application). Accepted **explicitly and only as a temporary state**, in the same spirit as D-015.
+
+Reason:
+The enriched CLI report needs the intermediate `Section[]` (to count sections/players) and genuine per-step status, neither of which `ImportHrfUseCase.execute()` currently exposes — it only returns the final `ClubContract`. Rather than call the use case redundantly alongside a second, separate parse just to get that visibility, Presentation was allowed to reach past Application into Infrastructure directly. This is a real regression from the intended layering (Presentation should depend on Application only) and is registered as such, not disguised as the target design.
+
+Status:
+Accepted (temporary — see condition below).
+
+Condition to resolve: the next story revisits `ImportHrfUseCase` so it returns a richer result (e.g. an `ImportResult`-shaped structure covering per-step status and the HRF summary data), so `analyze.ts` can go back to depending on Application only, without reconstructing the pipeline itself.
+
+See: `backend/src/presentation/analyze.ts`, D-015
+
 See: [ARCHITECTURE.md](ARCHITECTURE.md), [source-adapters.md](docs/source-adapters.md) §4
 
 ## D-013

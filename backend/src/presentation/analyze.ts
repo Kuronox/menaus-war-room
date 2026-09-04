@@ -1,9 +1,9 @@
+import { performance } from 'node:perf_hooks';
 import { basename } from 'node:path';
-import { ImportHrfUseCase } from '../application/import-hrf.use-case';
 import { Club } from '../domain/club';
-import { HrfAdapter, HrfFieldMissingError, type ClubContract } from '../infrastructure/hrf/hrf-adapter';
+import { HrfAdapter, type ClubContract } from '../infrastructure/hrf/hrf-adapter';
 import { HrfFileReader } from '../infrastructure/hrf/hrf-file-reader';
-import { HrfSectionParser } from '../infrastructure/hrf/hrf-section-parser';
+import { HrfSectionParser, type HrfSections } from '../infrastructure/hrf/hrf-section-parser';
 
 const SEPARATOR = '='.repeat(36);
 
@@ -16,41 +16,57 @@ function errorMessage(error: unknown): string {
  * console report as a list of lines, without printing or exiting — kept
  * separate from `main()` so it is directly testable.
  *
- * `ImportHrfUseCase` runs HrfFileReader, HrfSectionParser and HrfAdapter
- * as one atomic step (see its own design note on this). A failure inside
- * it cannot be attributed to one specific stage from the outside — this
- * is a known, documented limitation, not an oversight.
+ * Composes HrfFileReader -> HrfSectionParser -> HrfAdapter -> Club.create()
+ * directly, rather than going through ImportHrfUseCase: this report needs
+ * the intermediate `Section[]` (to count sections/players) and per-step
+ * status, neither of which ImportHrfUseCase currently exposes. That use
+ * case remains covered by its own tests and is the piece the future
+ * Application<->Domain integration story will extend and put back on this
+ * path — see TASKS.md / DECISIONS.md.
  */
 export async function analyze(filePath: string): Promise<{ lines: string[]; failed: boolean }> {
+  const startedAt = performance.now();
   const status: string[] = [];
   const clubDetails: string[] = [];
+  const summaryDetails: string[] = [];
   let failed = false;
 
-  const useCase = new ImportHrfUseCase(
-    new HrfFileReader(),
-    new HrfSectionParser(),
-    new HrfAdapter(),
-  );
+  const fileReader = new HrfFileReader();
+  const sectionParser = new HrfSectionParser();
+  const hrfAdapter = new HrfAdapter();
 
-  let contract: ClubContract | undefined;
+  let rawText: string | undefined;
   try {
-    contract = await useCase.execute(filePath);
-    status.push('✓ Archivo leído', '✓ HRF parseado', '✓ Data Contract generado');
+    rawText = await fileReader.readFile(filePath);
+    status.push('✓ Archivo leído');
   } catch (error) {
     failed = true;
-    if (error instanceof HrfFieldMissingError) {
-      // We know the file was read and parsed (HrfSectionParser never
-      // throws — see HU4), so the failure is necessarily in the adapter.
-      status.push(
-        '✓ Archivo leído',
-        '✓ HRF parseado',
-        `✗ Data Contract generado: ${error.message}`,
-      );
-    } else {
-      // Any other error (e.g. the file does not exist) happened before
-      // the adapter ran. Attributed jointly to "read/parse" because
-      // ImportHrfUseCase does not expose which of the two failed.
-      status.push(`✗ Archivo leído o HRF parseado: ${errorMessage(error)}`);
+    status.push(`✗ Archivo leído: ${errorMessage(error)}`);
+  }
+
+  let sections: HrfSections | undefined;
+  if (rawText !== undefined) {
+    // HrfSectionParser never throws (HU4: unrecognized lines are skipped,
+    // not rejected), so this step cannot fail on its own.
+    sections = sectionParser.parse(rawText);
+    status.push('✓ HRF parseado');
+
+    summaryDetails.push(
+      'Resumen HRF:',
+      `Secciones detectadas: ${sections.length}`,
+      `Jugadores detectados: ${hrfAdapter.countPlayers(sections)}`,
+      '',
+    );
+  }
+
+  let contract: ClubContract | undefined;
+  if (sections !== undefined) {
+    try {
+      contract = hrfAdapter.toClubContract(sections);
+      status.push('✓ Data Contract generado');
+    } catch (error) {
+      failed = true;
+      status.push(`✗ Data Contract generado: ${errorMessage(error)}`);
     }
   }
 
@@ -65,6 +81,8 @@ export async function analyze(filePath: string): Promise<{ lines: string[]; fail
     }
   }
 
+  const elapsedMs = performance.now() - startedAt;
+
   const lines = [
     SEPARATOR,
     'MENAUS WAR ROOM',
@@ -74,9 +92,12 @@ export async function analyze(filePath: string): Promise<{ lines: string[]; fail
     basename(filePath),
     '',
     ...clubDetails,
+    ...summaryDetails,
     'Estado:',
     '',
     ...status,
+    '',
+    `Tiempo de ejecución: ${elapsedMs.toFixed(2)} ms`,
     '',
     SEPARATOR,
   ];
