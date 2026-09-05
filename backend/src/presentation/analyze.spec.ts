@@ -1,6 +1,17 @@
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { analyze } from './analyze';
+
+let tempDir: string | undefined;
+
+afterEach(async () => {
+  if (tempDir !== undefined) {
+    await rm(tempDir, { recursive: true, force: true });
+    tempDir = undefined;
+  }
+});
 
 const SAMPLE_HRF_PATH = join(__dirname, '../../../data/hrf/3301513-2026-08-28.hrf');
 
@@ -44,6 +55,21 @@ describe('analyze', () => {
     expect(report).toContain('✓ Data Contract generado');
     expect(report).toContain('✓ Entidad Club creada');
     expect(report).toMatch(/Tiempo de ejecución: \d+(\.\d+)? ms/);
+    expect(report).not.toContain('Avisos:');
+  });
+
+  it('shows warnings in Spanish when team status and financial health are unavailable', async () => {
+    tempDir = await mkdtemp(join(tmpdir(), 'menaus-analyze-'));
+    const filePath = join(tempDir, 'test.hrf');
+    await writeFile(filePath, '[basics]\nteamID=1\nteamName=Test\n', 'utf-8');
+
+    const { lines, failed } = await analyze(filePath);
+    const report = lines.join('\n');
+
+    expect(failed).toBe(false);
+    expect(report).toContain('Avisos:');
+    expect(report).toContain('⚠ no se pudo leer el estado del equipo (moral/confianza/entrenamiento)');
+    expect(report).toContain('⚠ no se pudo leer la salud financiera del club');
   });
 
   it('reports a read failure in Spanish, without an HRF summary or Club/ID', async () => {

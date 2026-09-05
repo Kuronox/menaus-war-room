@@ -26,8 +26,9 @@ function errorMessage(error: unknown): string {
  * HrfFileReader, HrfSectionParser, HrfAdapter and Club.create() are fully
  * encapsulated here — nothing outside this class touches them directly
  * for this pipeline. A failed step stops the pipeline (later steps are
- * not attempted); this class does not produce any ImportWarning today —
- * see import-result.ts.
+ * not attempted). Team status and financial health are best-effort
+ * enrichments: their failure never stops the pipeline, it is recorded as
+ * an `ImportWarning` instead — see import-result.ts.
  *
  * Design note (D-015): depends directly on the concrete
  * HrfFileReader/HrfSectionParser/HrfAdapter, not on an abstract Import

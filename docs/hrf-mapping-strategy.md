@@ -84,6 +84,8 @@ Esta regla es la aplicación directa, a nivel de adaptador, del principio "nunca
 | `sjalvfortroendeValue` | `confidence` | ✅ |
 | `exper*` (10 campos) | `formationExperience[]` | 🔵 — mapear el `FormationCode` es directo (el sufijo numérico codifica la formación, p. ej. `433`→4-3-3), pero el nivel debe marcarse con la discrepancia de escala documentada en Sprint 0 |
 
+**Nota de implementación (lo que realmente se construyó, distinto de la tabla de arriba):** cuando se implementó el `TeamStatusContract` real (historia "Estado del Equipo"), se decidió **no** construir todavía `ClubTrainingSnapshot`/`SkillType`/`Denomination` — esas abstracciones siguen aparcadas (`Denomination` sigue sin implementarse, ver `TASKS.md`). En su lugar, `HrfAdapter.toTeamStatusContract()` usa `stamning`/`sjalvfortroende` (las **etiquetas de texto**, no `stamningValue`/`sjalvfortroendeValue`) y deja `trainingType` como `string` crudo (nunca un `SkillType`). Es una decisión correcta y ya explicada en el propio código (`hrf-adapter.ts`: "no scale, no i18n layer built yet"), pero diverge de esta tabla — la tabla sigue siendo el diseño objetivo de Sprint 1, no lo que corre hoy.
+
 ### `[lineup]` y `[lastlineup]` → `LineupPlan` y `MatchLineup`
 
 Este es el mapeo más delicado, porque ambas secciones del HRF usan vocabularios de posición distintos entre sí (ver Sprint 0). El adaptador debe implementar **dos tablas de traducción separadas** (una por sección) que ambas conviertan a los mismos 6 valores de `PositionRole` canónico:

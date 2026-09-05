@@ -26,10 +26,10 @@ Noted for the future, explicitly **not decided now**:
 `pnpm analyze <file.hrf>` runs the full pipeline end to end against real HRF files and prints a Spanish console report: `HrfFileReader` → `HrfSectionParser` → `HrfAdapter` → `ImportHrfUseCase` (now returns `ImportResult` — see D-016) → `Presentation`. This is the first point at which the system does something real, not just scaffolding.
 
 Delivered so far (all approved, all tested, `pnpm build`/`test`/`lint` green throughout):
-- [HrfFileReader](backend/src/infrastructure/hrf/hrf-file-reader.ts), [HrfSectionParser](backend/src/infrastructure/hrf/hrf-section-parser.ts) (`Section[]`, not `Record`), [HrfAdapter](backend/src/infrastructure/hrf/hrf-adapter.ts) (`ClubContract` + `TeamStatusContract`)
+- [HrfFileReader](backend/src/infrastructure/hrf/hrf-file-reader.ts), [HrfSectionParser](backend/src/infrastructure/hrf/hrf-section-parser.ts) (`Section[]`, not `Record`), [HrfAdapter](backend/src/infrastructure/hrf/hrf-adapter.ts) (`ClubContract` + `TeamStatusContract` + `FinancialHealthContract`)
 - [Club](backend/src/domain/club.ts) entity (`Entity<string>`, private constructor + `Club.create()` factory, per D-014) — now constructed **inside** `ImportHrfUseCase`, not by Presentation (D-016 resolved)
 - [ImportHrfUseCase](backend/src/application/import-hrf.use-case.ts) + [ImportResult](backend/src/application/import-result.ts) — encapsulates the full pipeline; still depends directly on the three Infrastructure classes above, not an Import Port (D-015, explicit technical debt)
-- [analyze CLI](backend/src/presentation/analyze.ts) (`pnpm analyze`) — reports Club identity, team status (moral/confianza/entrenamiento), HRF summary, per-step status, timing — all in Spanish, translated from `ImportResult`'s English enums by Presentation
+- [analyze CLI](backend/src/presentation/analyze.ts) (`pnpm analyze`) — reports Club identity, team status (moral/confianza/entrenamiento), financial health (efectivo/balance semanal), HRF summary, per-step status, warnings, timing — all in Spanish, translated from `ImportResult`'s English enums by Presentation
 
 Deprioritized/shelved, not abandoned:
 - `Denomination` + `RatingScaleType` — returns once the Report needs a real skill/attribute number.
@@ -61,7 +61,7 @@ Still open from Sprint 1, carried forward (not blocking HU3, will block relying 
 
 - Resolve D-009 (map unverified skill fields into the Domain, marked low-confidence) and D-010 (interim source-conflict principles)
 - Manual verification recommended in `hrf-mapping-strategy.md` §4: compare a known Menaus player's skill values in the `.hrf` against their in-game skill screen
-- Implement `HRFAdapter`, the Import Use Case, and persistence — all still pending, in that order, after the domain kernel is further built out
+- Implement `HrfAdapter`, the Import Use Case, and persistence — all still pending, in that order, after the domain kernel is further built out
 
 ---
 

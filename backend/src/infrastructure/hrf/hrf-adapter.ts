@@ -129,7 +129,11 @@ export class HrfAdapter {
   }
 
   private requireNumber(entries: Record<string, string>, key: string, sectionName: string): number {
-    if (!(key in entries)) {
+    // An empty/blank value is treated the same as an absent key — not as
+    // zero. `Number('')` is `0` in JavaScript, which would otherwise turn
+    // "no data" into a fabricated real value, violating the "never
+    // invent" principle already applied elsewhere in this adapter.
+    if (!(key in entries) || entries[key].trim().length === 0) {
       throw new HrfFieldMissingError(
         `HRF file is missing required field "${key}" in section "[${sectionName}]"`,
       );

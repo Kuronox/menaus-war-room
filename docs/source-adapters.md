@@ -50,7 +50,7 @@ Todo adaptador es responsable de:
 
 ## 3. Adaptadores previstos
 
-### 3.1 `HRFAdapter` (Sprint 1–2, primera implementación)
+### 3.1 `HrfAdapter` (Sprint 1–2, primera implementación)
 
 - **Entrada:** archivo de texto `.hrf`.
 - **Estrategia de mapeo:** [hrf-mapping-strategy.md](hrf-mapping-strategy.md).
@@ -60,8 +60,8 @@ Todo adaptador es responsable de:
 ### 3.2 `CHPPAdapter` (futuro, no implementado en este Sprint)
 
 - **Entrada prevista:** respuestas XML de la API oficial CHPP de Hattrick.
-- **Diferencia clave frente a HRF:** CHPP es una API activa (se puede pedir un recurso concreto — un jugador, un partido, un club rival), no un volcado único. Esto significa que el `CHPPAdapter` podrá, a diferencia del `HRFAdapter`, **sí alimentar datos de otros clubes** (rivales, mercado de fichajes) y datos de partidos completos (`Match` con detalle) — precisamente lo que Sprint 0 identificó como ausente del HRF.
-- **Reutilización:** dado que ambas fuentes describen en gran medida el mismo dominio (club propio, jugadores, habilidades), se espera una superposición significativa de campos con `HRFAdapter` — cuando ambos adaptadores estén activos, aparece el problema de **conflicto entre fuentes** (ver §5).
+- **Diferencia clave frente a HRF:** CHPP es una API activa (se puede pedir un recurso concreto — un jugador, un partido, un club rival), no un volcado único. Esto significa que el `CHPPAdapter` podrá, a diferencia del `HrfAdapter`, **sí alimentar datos de otros clubes** (rivales, mercado de fichajes) y datos de partidos completos (`Match` con detalle) — precisamente lo que Sprint 0 identificó como ausente del HRF.
+- **Reutilización:** dado que ambas fuentes describen en gran medida el mismo dominio (club propio, jugadores, habilidades), se espera una superposición significativa de campos con `HrfAdapter` — cuando ambos adaptadores estén activos, aparece el problema de **conflicto entre fuentes** (ver §5).
 - Este documento **no** diseña el mapeo CHPP en detalle — es trabajo de un Sprint futuro, cuando exista necesidad y acceso a la API. Se documenta aquí únicamente el lugar que le corresponde en la arquitectura.
 
 ### 3.3 `ManualEntryAdapter` (futuro)
@@ -82,7 +82,7 @@ Cualquier fuente nueva (otra herramienta de la comunidad, otro formato de export
 |---|---|
 | **Domain** | Entidades, Value Objects, Enumeraciones, reglas de negocio de Hattrick (canonical-domain-model.md) — no sabe que existen adaptadores |
 | **Application** | El caso de uso "importar datos de una fuente": orquesta invocar un adaptador (a través del Import Port), pasar el resultado por las reglas de validación, y persistir/publicar los snapshots resultantes. Conoce el Import Port (la abstracción), no conoce ningún adaptador concreto |
-| **Infrastructure** | Aquí viven `HRFAdapter`, `CHPPAdapter`, `ManualEntryAdapter` y cualquier otro — cada uno depende del dominio (para producir sus contratos) pero el dominio no depende de ninguno. La persistencia de los snapshots ya validados también vive aquí, como un adaptador más (`infrastructure/persistence/`) — no como una capa aparte — y sigue explícitamente fuera de alcance de este Sprint (no se diseña base de datos aquí, ver `DECISIONS.md` D-012) |
+| **Infrastructure** | Aquí viven `HrfAdapter`, `CHPPAdapter`, `ManualEntryAdapter` y cualquier otro — cada uno depende del dominio (para producir sus contratos) pero el dominio no depende de ninguno. La persistencia de los snapshots ya validados también vive aquí, como un adaptador más (`infrastructure/persistence/`) — no como una capa aparte — y sigue explícitamente fuera de alcance de este Sprint (no se diseña base de datos aquí, ver `DECISIONS.md` D-012) |
 
 Esta tabla formaliza, para la importación de datos específicamente, la regla que `ARCHITECTURE.md` ya declara en general ("el parser debe estar aislado", "la lógica de negocio nunca depende del HRF") y la extiende explícitamente a CHPP y a cualquier fuente futura.
 

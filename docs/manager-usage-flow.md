@@ -66,7 +66,7 @@ El sistema no puede automatizar este paso (requeriría credenciales de Hattrick,
 
 ### [3] Parseo y validación automáticos
 
-**Actor:** sistema (`HRFAdapter` + Validation Rules). **Entrada:** el archivo crudo. **Salida:** un `ImportBatch` nuevo + los snapshots que produce (condición de cada jugador, economía, entrenamiento, alineación, clasificación propia en liga).
+**Actor:** sistema (`HrfAdapter` + Validation Rules). **Entrada:** el archivo crudo. **Salida:** un `ImportBatch` nuevo + los snapshots que produce (condición de cada jugador, economía, entrenamiento, alineación, clasificación propia en liga).
 
 **Decisión del sistema:** aceptar, aceptar-con-marcas-de-revisión, o rechazar (ver [validation-rules.md](validation-rules.md) §1). Un rechazo duro (p. ej. archivo corrupto, faltan campos de procedencia) detiene el ciclo aquí y se lo comunica al manager en términos simples — nunca se le pide que "arregle" el archivo, porque el archivo no es su responsabilidad, es un export de Hattrick.
 
@@ -131,7 +131,7 @@ El ciclo se cierra aquí y vuelve a [1] la próxima vez que el manager tenga alg
 
 | Información | Origen | Frecuencia de entrada manual |
 |---|---|---|
-| Identidad y estado del propio club (plantilla, habilidades, forma, lesiones, finanzas, entrenamiento, moral, confianza, personal técnico, entrenador, alineación configurada) | **Automático** — HRF, vía `HRFAdapter` | Nunca (siempre que el manager importe el archivo) |
+| Identidad y estado del propio club (plantilla, habilidades, forma, lesiones, finanzas, entrenamiento, moral, confianza, personal técnico, entrenador, alineación configurada) | **Automático** — HRF, vía `HrfAdapter` | Nunca (siempre que el manager importe el archivo) |
 | Clasificación propia en la liga (partidos jugados, puntos, posición) | **Automático** — HRF | Nunca |
 | Rival del próximo partido: identidad, formación, fortalezas/debilidades, tendencias tácticas | **Manual** — el HRF no incluye ningún dato de otros clubes (confirmado en Sprint 0) | Cada semana que se quiera la sección de Análisis de Rival en el reporte; opcional |
 | Tabla completa de la liga (posición y resultados de los **demás** clubes) | **Manual** — el HRF solo trae la fila del propio club | Solo cuando cambie o se quiera actualizar; no es un dato semanal obligatorio |

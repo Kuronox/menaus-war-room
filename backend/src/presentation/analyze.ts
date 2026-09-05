@@ -1,7 +1,13 @@
 import { performance } from 'node:perf_hooks';
 import { basename } from 'node:path';
 import { ImportHrfUseCase } from '../application/import-hrf.use-case';
-import { ImportErrorCode, ImportStep, type ImportStepOutcome } from '../application/import-result';
+import {
+  ImportErrorCode,
+  ImportStep,
+  ImportWarningCode,
+  type ImportStepOutcome,
+  type ImportWarning,
+} from '../application/import-result';
 
 const SEPARATOR = '='.repeat(36);
 
@@ -30,6 +36,15 @@ function formatSignedAmount(amount: number): string {
   return amount < 0 ? `-${formatted}` : `+${formatted}`;
 }
 
+const WARNING_MESSAGES: Record<ImportWarningCode, string> = {
+  [ImportWarningCode.TeamStatusUnavailable]: 'no se pudo leer el estado del equipo (moral/confianza/entrenamiento)',
+  [ImportWarningCode.FinancialHealthUnavailable]: 'no se pudo leer la salud financiera del club',
+};
+
+function formatWarning(warning: ImportWarning): string {
+  return `⚠ ${WARNING_MESSAGES[warning.code]}`;
+}
+
 function formatStep(outcome: ImportStepOutcome): string {
   const label = STEP_LABELS[outcome.step];
   if (outcome.succeeded) {
@@ -46,8 +61,8 @@ function formatStep(outcome: ImportStepOutcome): string {
  * Depends only on `ImportHrfUseCase` and `ImportResult` — no
  * HrfFileReader/HrfSectionParser/HrfAdapter/Club here (resolves D-016).
  * Its only job is translating `ImportResult` into the Spanish report the
- * manager sees (`step`/`errorCode` are English identifiers by design —
- * see docs/import-result-design.md).
+ * manager sees (`step`/`errorCode`/`warning.code` are English identifiers
+ * by design — see docs/import-result-design.md).
  */
 export async function analyze(filePath: string): Promise<{ lines: string[]; failed: boolean }> {
   const startedAt = performance.now();
@@ -116,6 +131,7 @@ export async function analyze(filePath: string): Promise<{ lines: string[]; fail
     'Estado:',
     '',
     ...result.steps.map(formatStep),
+    ...(result.warnings.length > 0 ? ['', 'Avisos:', ...result.warnings.map(formatWarning)] : []),
     '',
     `Tiempo de ejecución: ${elapsedMs.toFixed(2)} ms`,
     '',

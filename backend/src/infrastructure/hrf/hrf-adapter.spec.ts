@@ -132,6 +132,23 @@ describe('HrfAdapter', () => {
       expect(() => adapter.toFinancialHealthContract(sections)).toThrow(HrfFieldMissingError);
     });
 
+    it('throws when a required field is present but empty, instead of treating it as zero', () => {
+      const sections: HrfSections = [
+        {
+          name: 'economy',
+          entries: {
+            Cash: '',
+            ExpectedCash: '200',
+            LastWeeksTotal: '10',
+            ExpectedWeeksTotal: '5',
+          },
+        },
+      ];
+      const adapter = new HrfAdapter();
+
+      expect(() => adapter.toFinancialHealthContract(sections)).toThrow(HrfFieldMissingError);
+    });
+
     it('throws when a required field is not a valid number', () => {
       const sections: HrfSections = [
         {

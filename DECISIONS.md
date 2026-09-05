@@ -122,7 +122,7 @@ See: [canonical-domain-model.md](docs/canonical-domain-model.md) §1.3, §5
 Date: 2026-09-03
 
 Decision:
-Adopt a Ports & Adapters (Hexagonal) architecture for data import: one Source Adapter per data origin (HRFAdapter today; CHPPAdapter, ManualEntryAdapter, others later), each living in Infrastructure and each solely responsible for translating its native format into the Domain's Data Contracts.
+Adopt a Ports & Adapters (Hexagonal) architecture for data import: one Source Adapter per data origin (HrfAdapter today; CHPPAdapter, ManualEntryAdapter, others later), each living in Infrastructure and each solely responsible for translating its native format into the Domain's Data Contracts.
 
 Reason:
 This is the concrete mechanism that fulfills D-005 in practice — it is what allows adding a new data source without modifying the Domain, and keeps every source-specific quirk (naming, encoding, redundancy) contained to a single adapter.
@@ -139,7 +139,7 @@ See: [source-adapters.md](docs/source-adapters.md)
 Date: 2026-09-03
 
 Decision:
-The `HRFAdapter` will map the 10 skill/attribute fields (`for`, `uth`, `spe`, `mal`, `fra`, `ytt`, `fas`, `bac`, `mlv`, `rut`) into the Domain despite their field-to-concept mapping remaining unconfirmed by any official Hattrick source (Sprint 0, classified 🔵). Each resulting value will be marked with a low-confidence/unverified indicator rather than being withheld.
+The `HrfAdapter` will map the 10 skill/attribute fields (`for`, `uth`, `spe`, `mal`, `fra`, `ytt`, `fas`, `bac`, `mlv`, `rut`) into the Domain despite their field-to-concept mapping remaining unconfirmed by any official Hattrick source (Sprint 0, classified 🔵). Each resulting value will be marked with a low-confidence/unverified indicator rather than being withheld.
 
 Reason:
 Withholding these fields entirely would leave Training, Tactical, and Scouting features (Sprint 2/3) with no skill data at all, defeating the product's purpose. Marking them as unverified, rather than presenting them as confirmed facts, respects the "never invent" principle while keeping the product usable.
@@ -190,7 +190,7 @@ See: [TECH_STACK.md](TECH_STACK.md), [ARCHITECTURE.md](ARCHITECTURE.md)
 Date: 2026-09-04
 
 Decision:
-Remove `Data` as a separate top-level architectural layer. Persistence is not a peer of Infrastructure — it is a category of adapter (a persistence adapter, e.g. a repository implementation) living *inside* Infrastructure, implementing a port defined by Domain/Application, exactly like `HRFAdapter` or `CHPPAdapter`. `ARCHITECTURE.md`'s layer diagram is updated accordingly (`Presentation → Application → Domain ← Infrastructure`), and the corresponding `src/data` folder is removed from the backend scaffold.
+Remove `Data` as a separate top-level architectural layer. Persistence is not a peer of Infrastructure — it is a category of adapter (a persistence adapter, e.g. a repository implementation) living *inside* Infrastructure, implementing a port defined by Domain/Application, exactly like `HrfAdapter` or `CHPPAdapter`. `ARCHITECTURE.md`'s layer diagram is updated accordingly (`Presentation → Application → Domain ← Infrastructure`), and the corresponding `src/data` folder is removed from the backend scaffold.
 
 Reason:
 `ARCHITECTURE.md`'s original 5-box diagram predates Sprint 0 and was already flagged then as a naive linear layering rather than genuine Clean Architecture. Once Ports & Adapters was formally adopted for the import architecture (`source-adapters.md`), its own diagram already reflected only three real rings (Domain, Application, Infrastructure); "Data" survived only as a leftover row in a supporting table, not as a consequence of the pattern actually adopted. A database repository is architecturally the same kind of citizen as a source-import adapter — there is no operation that belongs in "Data" that doesn't equally belong in "Infrastructure". Keeping an empty `src/data` folder with no assigned responsibility and no near-term design (persistence remains out of scope, see D-011) was exactly the kind of speculative "just in case" scaffolding the project does not want.

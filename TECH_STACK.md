@@ -23,7 +23,7 @@ Rationale:
 **NestJS.**
 
 Rationale:
-- Its module system and dependency-injection container map directly onto the architecture already designed: Domain, Application and Infrastructure ([ARCHITECTURE.md](ARCHITECTURE.md)) become distinct Nest modules, and the **Import Port** ([source-adapters.md](docs/source-adapters.md)) becomes an injectable abstraction that `HRFAdapter`, and later `CHPPAdapter` / `ManualEntryAdapter`, implement as swappable providers — without Domain ever depending on a concrete adapter.
+- Its module system and dependency-injection container map directly onto the architecture already designed: Domain, Application and Infrastructure ([ARCHITECTURE.md](ARCHITECTURE.md)) would become distinct Nest modules, and the **Import Port** ([source-adapters.md](docs/source-adapters.md)) would become an injectable abstraction that `HrfAdapter`, and later `CHPPAdapter` / `ManualEntryAdapter`, implement as swappable providers — without Domain ever depending on a concrete adapter. This is the target this stack was chosen to support; no NestJS module wiring exists yet (`DECISIONS.md` D-015).
 - No ORM is adopted alongside it until persistence is actually designed — it will land as a persistence adapter inside Infrastructure, not as a separate layer (`ARCHITECTURE.md`, `DECISIONS.md` D-012).
 
 ## Package Manager
