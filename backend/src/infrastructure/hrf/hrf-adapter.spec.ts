@@ -49,6 +49,107 @@ describe('HrfAdapter', () => {
     });
   });
 
+  describe('toTeamStatusContract', () => {
+    it('extracts teamSpirit/confidence/trainingType from a real HRF file, under canonical names', () => {
+      const rawText = readFileSync(SAMPLE_HRF_PATH, 'utf-8');
+      const sections = new HrfSectionParser().parse(rawText);
+      const adapter = new HrfAdapter();
+
+      const contract = adapter.toTeamStatusContract(sections);
+
+      expect(contract).toEqual({
+        teamSpirit: 'serenos',
+        confidence: 'Muy baja',
+        trainingType: 'Jugadas',
+      });
+    });
+
+    it('throws when the "[team]" section is missing entirely', () => {
+      const sections: HrfSections = [];
+      const adapter = new HrfAdapter();
+
+      expect(() => adapter.toTeamStatusContract(sections)).toThrow(HrfFieldMissingError);
+    });
+
+    it('throws when "stamning" is missing from "[team]"', () => {
+      const sections: HrfSections = [
+        { name: 'team', entries: { sjalvfortroende: 'Muy baja', trType: 'Jugadas' } },
+      ];
+      const adapter = new HrfAdapter();
+
+      expect(() => adapter.toTeamStatusContract(sections)).toThrow(HrfFieldMissingError);
+    });
+
+    it('throws when "sjalvfortroende" is missing from "[team]"', () => {
+      const sections: HrfSections = [{ name: 'team', entries: { stamning: 'serenos', trType: 'Jugadas' } }];
+      const adapter = new HrfAdapter();
+
+      expect(() => adapter.toTeamStatusContract(sections)).toThrow(HrfFieldMissingError);
+    });
+
+    it('throws when "trType" is missing from "[team]"', () => {
+      const sections: HrfSections = [
+        { name: 'team', entries: { stamning: 'serenos', sjalvfortroende: 'Muy baja' } },
+      ];
+      const adapter = new HrfAdapter();
+
+      expect(() => adapter.toTeamStatusContract(sections)).toThrow(HrfFieldMissingError);
+    });
+  });
+
+  describe('toFinancialHealthContract', () => {
+    it('extracts cash/expectedCash/lastWeekBalance/currentWeekProjectedBalance from a real HRF file', () => {
+      const rawText = readFileSync(SAMPLE_HRF_PATH, 'utf-8');
+      const sections = new HrfSectionParser().parse(rawText);
+      const adapter = new HrfAdapter();
+
+      const contract = adapter.toFinancialHealthContract(sections);
+
+      expect(contract).toEqual({
+        cash: 15367994,
+        expectedCash: 16921294,
+        lastWeekBalance: 262880,
+        currentWeekProjectedBalance: 1553300,
+      });
+    });
+
+    it('throws when the "[economy]" section is missing entirely', () => {
+      const sections: HrfSections = [];
+      const adapter = new HrfAdapter();
+
+      expect(() => adapter.toFinancialHealthContract(sections)).toThrow(HrfFieldMissingError);
+    });
+
+    it('throws when a required field is missing from "[economy]"', () => {
+      const sections: HrfSections = [
+        {
+          name: 'economy',
+          entries: { Cash: '100', ExpectedCash: '200', LastWeeksTotal: '10' },
+        },
+      ];
+      const adapter = new HrfAdapter();
+
+      expect(() => adapter.toFinancialHealthContract(sections)).toThrow(HrfFieldMissingError);
+    });
+
+    it('throws when a required field is not a valid number', () => {
+      const sections: HrfSections = [
+        {
+          name: 'economy',
+          entries: {
+            Cash: 'not-a-number',
+            ExpectedCash: '200',
+            LastWeeksTotal: '10',
+            ExpectedWeeksTotal: '5',
+          },
+        },
+      ];
+      const adapter = new HrfAdapter();
+
+      expect(() => adapter.toFinancialHealthContract(sections)).toThrow(HrfFieldMissingError);
+    });
+  });
+
   describe('countPlayers', () => {
     it('counts player sections in a real HRF file, excluding the coach', () => {
       const rawText = readFileSync(SAMPLE_HRF_PATH, 'utf-8');

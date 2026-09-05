@@ -17,9 +17,27 @@ describe('analyze', () => {
     expect(report).toContain('Menaus');
     expect(report).toContain('ID:');
     expect(report).toContain('3301513');
+    expect(report).toContain('Estado del Equipo:');
+    expect(report).toContain('Moral: serenos');
+    expect(report).toContain('Confianza: Muy baja');
+    expect(report).toContain('Entrenamiento: Jugadas');
+    expect(report).toContain('Finanzas:');
+    expect(report).toContain(`Efectivo actual: ${(15105114).toLocaleString('es')}`);
+    expect(report).toContain(
+      `Efectivo esperado tras la próxima actualización: ${(15367994).toLocaleString('es')}`,
+    );
+    expect(report).toContain(
+      `Balance de la semana pasada (cerrada): +${(258635).toLocaleString('es')}`,
+    );
+    expect(report).toContain(
+      `Balance proyectado de esta semana (en curso): +${(262880).toLocaleString('es')}`,
+    );
+    expect(report).toContain(
+      'Tendencia respecto a tu última importación: no disponible (el sistema aún no conserva historial entre ejecuciones)',
+    );
+    expect(report).not.toMatch(/[€$]/);
     expect(report).toContain('Resumen HRF:');
-    expect(report).toMatch(/Secciones detectadas: \d+/);
-    // 21 "[player<ID>]" blocks in the sample file, coach excluded.
+    expect(report).toContain('Secciones detectadas: 31');
     expect(report).toContain('Jugadores detectados: 20');
     expect(report).toContain('✓ Archivo leído');
     expect(report).toContain('✓ HRF parseado');
@@ -28,7 +46,7 @@ describe('analyze', () => {
     expect(report).toMatch(/Tiempo de ejecución: \d+(\.\d+)? ms/);
   });
 
-  it('reports a read failure precisely, without an HRF summary or Club/ID', async () => {
+  it('reports a read failure in Spanish, without an HRF summary or Club/ID', async () => {
     const { lines, failed } = await analyze(join(__dirname, 'does-not-exist.hrf'));
     const report = lines.join('\n');
 
@@ -36,6 +54,10 @@ describe('analyze', () => {
     expect(report).not.toContain('Resumen HRF:');
     expect(report).not.toContain('Club:');
     expect(report).not.toContain('ID:');
-    expect(report).toContain('✗ Archivo leído:');
+    expect(report).not.toContain('Finanzas:');
+    // The raw Node error (English, e.g. "ENOENT: ...") must never reach the
+    // manager — only the translated Spanish message.
+    expect(report).toContain('✗ Archivo leído: no se pudo leer el archivo');
+    expect(report).not.toContain('ENOENT');
   });
 });

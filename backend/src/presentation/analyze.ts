@@ -1,87 +1,105 @@
 import { performance } from 'node:perf_hooks';
 import { basename } from 'node:path';
-import { Club } from '../domain/club';
-import { HrfAdapter, type ClubContract } from '../infrastructure/hrf/hrf-adapter';
-import { HrfFileReader } from '../infrastructure/hrf/hrf-file-reader';
-import { HrfSectionParser, type HrfSections } from '../infrastructure/hrf/hrf-section-parser';
+import { ImportHrfUseCase } from '../application/import-hrf.use-case';
+import { ImportErrorCode, ImportStep, type ImportStepOutcome } from '../application/import-result';
 
 const SEPARATOR = '='.repeat(36);
 
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+const STEP_LABELS: Record<ImportStep, string> = {
+  [ImportStep.FileLoaded]: 'Archivo leído',
+  [ImportStep.SectionsParsed]: 'HRF parseado',
+  [ImportStep.ContractGenerated]: 'Data Contract generado',
+  [ImportStep.ClubCreated]: 'Entidad Club creada',
+};
+
+const ERROR_MESSAGES: Record<ImportErrorCode, string> = {
+  [ImportErrorCode.FileLoadFailed]: 'no se pudo leer el archivo',
+  [ImportErrorCode.MissingRequiredField]: 'falta un campo obligatorio en el HRF',
+  [ImportErrorCode.InvalidClub]: 'los datos del club no son válidos',
+  [ImportErrorCode.Unknown]: 'error desconocido',
+};
+
+// No currency symbol — no source in this project confirms which currency
+// these figures are in (see docs/financial-health-design.md).
+function formatAmount(amount: number): string {
+  return amount.toLocaleString('es');
+}
+
+function formatSignedAmount(amount: number): string {
+  const formatted = formatAmount(Math.abs(amount));
+  return amount < 0 ? `-${formatted}` : `+${formatted}`;
+}
+
+function formatStep(outcome: ImportStepOutcome): string {
+  const label = STEP_LABELS[outcome.step];
+  if (outcome.succeeded) {
+    return `✓ ${label}`;
+  }
+  const reason = outcome.errorCode === undefined ? 'error desconocido' : ERROR_MESSAGES[outcome.errorCode];
+  return `✗ ${label}: ${reason}`;
 }
 
 /**
- * Runs the full HRF import pipeline for a single file and builds the
- * console report as a list of lines, without printing or exiting — kept
- * separate from `main()` so it is directly testable.
+ * Builds the console report as a list of lines, without printing or
+ * exiting — kept separate from `main()` so it is directly testable.
  *
- * Composes HrfFileReader -> HrfSectionParser -> HrfAdapter -> Club.create()
- * directly, rather than going through ImportHrfUseCase: this report needs
- * the intermediate `Section[]` (to count sections/players) and per-step
- * status, neither of which ImportHrfUseCase currently exposes. That use
- * case remains covered by its own tests and is the piece the future
- * Application<->Domain integration story will extend and put back on this
- * path — see TASKS.md / DECISIONS.md.
+ * Depends only on `ImportHrfUseCase` and `ImportResult` — no
+ * HrfFileReader/HrfSectionParser/HrfAdapter/Club here (resolves D-016).
+ * Its only job is translating `ImportResult` into the Spanish report the
+ * manager sees (`step`/`errorCode` are English identifiers by design —
+ * see docs/import-result-design.md).
  */
 export async function analyze(filePath: string): Promise<{ lines: string[]; failed: boolean }> {
   const startedAt = performance.now();
-  const status: string[] = [];
+
+  const useCase = ImportHrfUseCase.create();
+  const result = await useCase.execute(filePath);
+
+  const elapsedMs = performance.now() - startedAt;
+
   const clubDetails: string[] = [];
-  const summaryDetails: string[] = [];
-  let failed = false;
-
-  const fileReader = new HrfFileReader();
-  const sectionParser = new HrfSectionParser();
-  const hrfAdapter = new HrfAdapter();
-
-  let rawText: string | undefined;
-  try {
-    rawText = await fileReader.readFile(filePath);
-    status.push('✓ Archivo leído');
-  } catch (error) {
-    failed = true;
-    status.push(`✗ Archivo leído: ${errorMessage(error)}`);
+  if (result.club !== undefined) {
+    clubDetails.push('Club:', result.club.name, '', 'ID:', result.club.id, '');
   }
 
-  let sections: HrfSections | undefined;
-  if (rawText !== undefined) {
-    // HrfSectionParser never throws (HU4: unrecognized lines are skipped,
-    // not rejected), so this step cannot fail on its own.
-    sections = sectionParser.parse(rawText);
-    status.push('✓ HRF parseado');
-
+  const summaryDetails: string[] = [];
+  if (result.summary !== undefined) {
     summaryDetails.push(
       'Resumen HRF:',
-      `Secciones detectadas: ${sections.length}`,
-      `Jugadores detectados: ${hrfAdapter.countPlayers(sections)}`,
+      `Secciones detectadas: ${result.summary.sectionCount}`,
+      `Jugadores detectados: ${result.summary.playerCount}`,
       '',
     );
   }
 
-  let contract: ClubContract | undefined;
-  if (sections !== undefined) {
-    try {
-      contract = hrfAdapter.toClubContract(sections);
-      status.push('✓ Data Contract generado');
-    } catch (error) {
-      failed = true;
-      status.push(`✗ Data Contract generado: ${errorMessage(error)}`);
-    }
+  const teamStatusDetails: string[] = [];
+  if (result.teamStatus !== undefined) {
+    teamStatusDetails.push(
+      'Estado del Equipo:',
+      `Moral: ${result.teamStatus.teamSpirit}`,
+      `Confianza: ${result.teamStatus.confidence}`,
+      `Entrenamiento: ${result.teamStatus.trainingType}`,
+      '',
+    );
   }
 
-  if (contract !== undefined) {
-    try {
-      const club = Club.create(contract.clubId, contract.name);
-      status.push('✓ Entidad Club creada');
-      clubDetails.push('Club:', club.name, '', 'ID:', club.id, '');
-    } catch (error) {
-      failed = true;
-      status.push(`✗ Entidad Club creada: ${errorMessage(error)}`);
-    }
+  const financialHealthDetails: string[] = [];
+  if (result.financialHealth !== undefined) {
+    const { cash, expectedCash, lastWeekBalance, currentWeekProjectedBalance } = result.financialHealth;
+    financialHealthDetails.push(
+      'Finanzas:',
+      `Efectivo actual: ${formatAmount(cash)}`,
+      `Efectivo esperado tras la próxima actualización: ${formatAmount(expectedCash)}`,
+      `Balance de la semana pasada (cerrada): ${formatSignedAmount(lastWeekBalance)}`,
+      `Balance proyectado de esta semana (en curso): ${formatSignedAmount(currentWeekProjectedBalance)}`,
+      // UX: explain briefly why, not just "no disponible" — the system
+      // does not persist anything between runs yet (no ImportBatch/
+      // history, see D-012/TASKS.md), so a real week-over-week trend
+      // cannot be computed today, by design, not due to a data gap.
+      'Tendencia respecto a tu última importación: no disponible (el sistema aún no conserva historial entre ejecuciones)',
+      '',
+    );
   }
-
-  const elapsedMs = performance.now() - startedAt;
 
   const lines = [
     SEPARATOR,
@@ -92,17 +110,19 @@ export async function analyze(filePath: string): Promise<{ lines: string[]; fail
     basename(filePath),
     '',
     ...clubDetails,
+    ...teamStatusDetails,
+    ...financialHealthDetails,
     ...summaryDetails,
     'Estado:',
     '',
-    ...status,
+    ...result.steps.map(formatStep),
     '',
     `Tiempo de ejecución: ${elapsedMs.toFixed(2)} ms`,
     '',
     SEPARATOR,
   ];
 
-  return { lines, failed };
+  return { lines, failed: !result.succeeded };
 }
 
 async function main(): Promise<void> {

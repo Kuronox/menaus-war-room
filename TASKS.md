@@ -23,21 +23,24 @@ Noted for the future, explicitly **not decided now**:
 
 ## Milestone — first executable vertical slice (2026-09-04)
 
-`pnpm analyze <file.hrf>` runs the full pipeline end to end against real HRF files and prints a Spanish console report: `HrfFileReader` → `HrfSectionParser` → `HrfAdapter` → `ImportHrfUseCase` (produces `ClubContract`) → `Club.create()` (called from the CLI script, not yet from the use case — see below). This is the first point at which the system does something real, not just scaffolding.
+`pnpm analyze <file.hrf>` runs the full pipeline end to end against real HRF files and prints a Spanish console report: `HrfFileReader` → `HrfSectionParser` → `HrfAdapter` → `ImportHrfUseCase` (now returns `ImportResult` — see D-016) → `Presentation`. This is the first point at which the system does something real, not just scaffolding.
 
-Delivered to reach it (all approved, all tested, `pnpm build`/`test`/`lint` green throughout):
-- [HrfFileReader](backend/src/infrastructure/hrf/hrf-file-reader.ts)
-- [HrfSectionParser](backend/src/infrastructure/hrf/hrf-section-parser.ts) (`Section[]`, not `Record` — see D-013/chat history for why)
-- [HrfAdapter](backend/src/infrastructure/hrf/hrf-adapter.ts) → `ClubContract`
-- [ImportHrfUseCase](backend/src/application/import-hrf.use-case.ts) — composes the three above; **depends on them directly, not on an abstract Import Port — explicit technical debt, see D-015**
-- [Club](backend/src/domain/club.ts) entity (`Entity<string>`, private constructor + `Club.create()` factory, per D-014)
-- [analyze CLI](backend/src/presentation/analyze.ts) (`pnpm analyze`)
+Delivered so far (all approved, all tested, `pnpm build`/`test`/`lint` green throughout):
+- [HrfFileReader](backend/src/infrastructure/hrf/hrf-file-reader.ts), [HrfSectionParser](backend/src/infrastructure/hrf/hrf-section-parser.ts) (`Section[]`, not `Record`), [HrfAdapter](backend/src/infrastructure/hrf/hrf-adapter.ts) (`ClubContract` + `TeamStatusContract`)
+- [Club](backend/src/domain/club.ts) entity (`Entity<string>`, private constructor + `Club.create()` factory, per D-014) — now constructed **inside** `ImportHrfUseCase`, not by Presentation (D-016 resolved)
+- [ImportHrfUseCase](backend/src/application/import-hrf.use-case.ts) + [ImportResult](backend/src/application/import-result.ts) — encapsulates the full pipeline; still depends directly on the three Infrastructure classes above, not an Import Port (D-015, explicit technical debt)
+- [analyze CLI](backend/src/presentation/analyze.ts) (`pnpm analyze`) — reports Club identity, team status (moral/confianza/entrenamiento), HRF summary, per-step status, timing — all in Spanish, translated from `ImportResult`'s English enums by Presentation
 
 Deprioritized/shelved, not abandoned:
 - `Denomination` + `RatingScaleType` — returns once the Report needs a real skill/attribute number.
-- The Application↔Domain integration (`ImportHrfUseCase` returning `Club` instead of `ClubContract`) — deliberately kept as its own future HU, not folded into the CLI story.
 
 Default set for the next real domain invariant, wherever it first appears (D-014): a specific domain exception (not `Result<T>`, not a generic `Error`), until a strong reason argues otherwise.
+
+## Investigation closed — "¿Mi entrenamiento fue aprovechado esta semana?" (2026-09-04)
+
+**Withdrawn from the implementation backlog (D-020), not abandoned.** Research completed and documented in [training-utilization-design.md](docs/training-utilization-design.md) and [hrf-data-dictionary.md](docs/hrf-data-dictionary.md): `LastMatch_PositionCode` has **no confirmed meaning** in any official Hattrick source (Wiki/CHPP checked directly — see D-020) — without it, position-based training eligibility can't be determined, and the HRF only exposes a player's most recent match, not the week's total minutes. No implementation was done; none is planned until one of the two blockers is resolved (new official documentation, or a different data source such as CHPP that can supply the missing information).
+
+Guiding principle going forward, stated explicitly by the user (D-020): fewer capabilities delivered with high confidence, over more built on unverifiable inference.
 
 ---
 

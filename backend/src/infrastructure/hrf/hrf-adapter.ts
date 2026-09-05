@@ -13,6 +13,36 @@ export interface ClubContract {
 }
 
 /**
+ * The club's current team spirit, confidence and training focus — see
+ * docs/data-contracts.md. Field names are canonical (`teamSpirit`,
+ * `confidence`, `trainingType`), never the HRF originals (`stamning`,
+ * `sjalvfortroende`, `trType`) — the Adapter never leaks a source field
+ * name into what it returns. Values are passed through exactly as HRF
+ * provides them (already Spanish text, e.g. "serenos", "Muy baja",
+ * "Jugadas") — no scale, no i18n layer built yet (deliberately out of
+ * scope for this story).
+ */
+export interface TeamStatusContract {
+  teamSpirit: string;
+  confidence: string;
+  trainingType: string;
+}
+
+/**
+ * The club's financial health this week — see docs/data-contracts.md and
+ * docs/financial-health-design.md. Canonical names, never the HRF
+ * originals (`Cash`, `ExpectedCash`, `LastWeeksTotal`,
+ * `ExpectedWeeksTotal`). No currency symbol is attached anywhere — no
+ * source in this project confirms which currency the numbers are in.
+ */
+export interface FinancialHealthContract {
+  cash: number;
+  expectedCash: number;
+  lastWeekBalance: number;
+  currentWeekProjectedBalance: number;
+}
+
+/**
  * Thrown when a field required by a Data Contract is not present in the
  * HRF file. Per docs/data-contracts.md: a required field that cannot be
  * provided with certainty must reject the record, not invent a value.
@@ -53,6 +83,66 @@ export class HrfAdapter {
       clubId: basics.entries.teamID,
       name: basics.entries.teamName,
     };
+  }
+
+  toTeamStatusContract(sections: HrfSections): TeamStatusContract {
+    const team = sections.find((section) => section.name === 'team');
+    if (team === undefined) {
+      throw new HrfFieldMissingError('HRF file is missing required section "[team]"');
+    }
+
+    if (!('stamning' in team.entries)) {
+      throw new HrfFieldMissingError(
+        'HRF file is missing required field "stamning" in section "[team]"',
+      );
+    }
+    if (!('sjalvfortroende' in team.entries)) {
+      throw new HrfFieldMissingError(
+        'HRF file is missing required field "sjalvfortroende" in section "[team]"',
+      );
+    }
+    if (!('trType' in team.entries)) {
+      throw new HrfFieldMissingError(
+        'HRF file is missing required field "trType" in section "[team]"',
+      );
+    }
+
+    return {
+      teamSpirit: team.entries.stamning,
+      confidence: team.entries.sjalvfortroende,
+      trainingType: team.entries.trType,
+    };
+  }
+
+  toFinancialHealthContract(sections: HrfSections): FinancialHealthContract {
+    const economy = sections.find((section) => section.name === 'economy');
+    if (economy === undefined) {
+      throw new HrfFieldMissingError('HRF file is missing required section "[economy]"');
+    }
+
+    return {
+      cash: this.requireNumber(economy.entries, 'Cash', 'economy'),
+      expectedCash: this.requireNumber(economy.entries, 'ExpectedCash', 'economy'),
+      lastWeekBalance: this.requireNumber(economy.entries, 'LastWeeksTotal', 'economy'),
+      currentWeekProjectedBalance: this.requireNumber(economy.entries, 'ExpectedWeeksTotal', 'economy'),
+    };
+  }
+
+  private requireNumber(entries: Record<string, string>, key: string, sectionName: string): number {
+    if (!(key in entries)) {
+      throw new HrfFieldMissingError(
+        `HRF file is missing required field "${key}" in section "[${sectionName}]"`,
+      );
+    }
+
+    const value = Number(entries[key]);
+    if (Number.isNaN(value)) {
+      throw new HrfFieldMissingError(
+        `HRF file field "${key}" in section "[${sectionName}]" is not a valid number`,
+      );
+    }
+
+    return value;
   }
 
   /**

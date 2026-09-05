@@ -1,5 +1,11 @@
 # Decisions Log
 
+Status vocabulary:
+- **Accepted** — in force.
+- **Accepted (temporary)** — in force, with an explicit condition under which it must be revisited (stated in the entry).
+- **Propuesta / Proposal** — not yet in force, pending confirmation.
+- **Superseded by D-0XX** — no longer in force. The entry is kept, never deleted or rewritten — history stays intact, only the Status line points to its replacement.
+
 ## D-001
 
 Date: 2026-09-03
@@ -128,7 +134,7 @@ See: [source-adapters.md](docs/source-adapters.md)
 
 ---
 
-## D-009 (Propuesta — pendiente de confirmación del usuario)
+## D-009
 
 Date: 2026-09-03
 
@@ -139,7 +145,7 @@ Reason:
 Withholding these fields entirely would leave Training, Tactical, and Scouting features (Sprint 2/3) with no skill data at all, defeating the product's purpose. Marking them as unverified, rather than presenting them as confirmed facts, respects the "never invent" principle while keeping the product usable.
 
 Status:
-**Propuesta.** Requiere que el usuario apruebe este trade-off explícitamente, y que se complete la verificación manual recomendada (comparar un jugador conocido contra su pantalla de habilidades dentro del juego) antes de que Sprint 2/3 confíe en estos valores para generar una recomendación al manager.
+**Superseded by D-019.** On review, mapping these fields to named domain concepts — even flagged unverified — still asserts a specific meaning before it is earned by evidence, which sits too close to the "never invent" line it was meant to respect. Kept here for history; D-019 replaces the approach.
 
 See: [hrf-mapping-strategy.md](docs/hrf-mapping-strategy.md) §4
 
@@ -262,22 +268,103 @@ Reason:
 The enriched CLI report needs the intermediate `Section[]` (to count sections/players) and genuine per-step status, neither of which `ImportHrfUseCase.execute()` currently exposes — it only returns the final `ClubContract`. Rather than call the use case redundantly alongside a second, separate parse just to get that visibility, Presentation was allowed to reach past Application into Infrastructure directly. This is a real regression from the intended layering (Presentation should depend on Application only) and is registered as such, not disguised as the target design.
 
 Status:
-Accepted (temporary — see condition below).
+**Resolved.** `ImportHrfUseCase.execute()` now returns `ImportResult` (see [import-result-design.md](docs/import-result-design.md)), covering per-step status, the HRF summary, and the constructed `Club` — `analyze.ts` depends only on `ImportHrfUseCase`/`ImportResult` again, with no reference to `HrfFileReader`, `HrfSectionParser`, `HrfAdapter` or `Club.create()`. As a side effect, this also fixed a pre-existing Language Policy violation: the report no longer leaks raw English exception text (e.g. `ENOENT: ...`) to the manager — errors are now classified into `ImportErrorCode` and translated to Spanish by Presentation.
 
-Condition to resolve: the next story revisits `ImportHrfUseCase` so it returns a richer result (e.g. an `ImportResult`-shaped structure covering per-step status and the HRF summary data), so `analyze.ts` can go back to depending on Application only, without reconstructing the pipeline itself.
+Note: Presentation still directly constructs `HrfFileReader`/`HrfSectionParser`/`HrfAdapter` in one place — `ImportHrfUseCase.create()` — a static factory used only because no NestJS DI container is wired up yet (D-015). This is composition-root wiring, not behavioral coupling: Presentation never calls a method on any of the three, only on `ImportHrfUseCase`.
 
-See: `backend/src/presentation/analyze.ts`, D-015
+See: `backend/src/presentation/analyze.ts`, `backend/src/application/import-hrf.use-case.ts`, `backend/src/application/import-result.ts`, [import-result-design.md](docs/import-result-design.md), D-015
 
-See: [ARCHITECTURE.md](ARCHITECTURE.md), [source-adapters.md](docs/source-adapters.md) §4
+---
 
-## D-013
+## D-017
 
 Date: 2026-09-04
 
 Decision:
-No crear carpetas vacías "para el futuro"
+No crear carpetas vacías "para el futuro".
 
-Reason: 
-Una carpeta aparece únicamente cuando existe el primer componente cuya responsabilidad justifica su existencia.
-Eso mantiene el árbol muy limpio.
+Reason:
+Una carpeta aparece únicamente cuando existe el primer componente cuya responsabilidad justifica su existencia. Eso mantiene el árbol muy limpio.
 
+Status:
+Accepted.
+
+See: D-012 (misma regla aplicada a `src/data`), `TASKS.md`
+
+---
+
+## D-018
+
+Date: 2026-09-04
+
+Decision:
+The executable product is prioritized over horizontal domain expansion. Whenever possible, complete one vertical slice before introducing additional abstractions or entities.
+
+Reason:
+This has already been the operating pattern across several stories, not a new idea being introduced now: deferring `AggregateRoot`/`DomainEvent`/`Result<T>`/`Identifier<T>` until a concrete need exists (D-013), resolving `src/data` instead of leaving it "just in case" (D-012), sequencing HU3–HU8 as a walking skeleton (Reader → Parser → Adapter → Use Case → Entity → CLI) before widening the domain, and registering shortcuts as explicit technical debt (D-015, D-016) rather than blocking the slice on a perfect abstraction. Writing it down formalizes a rule the project has already been following for several sprints.
+
+Status:
+Accepted.
+
+See: `CLAUDE.md` ("Development Priority"), D-012, D-013, D-015, D-016
+
+---
+
+## D-019
+
+Date: 2026-09-04
+
+Decision:
+Supersedes D-009. The 10 skill/attribute fields (`for`, `uth`, `spe`, `mal`, `fra`, `ytt`, `fas`, `bac`, `mlv`, `rut`) are **not** mapped to their hypothesized Hattrick concepts (Form, Stamina, Playmaking, etc.) until there is sufficient evidence to assign that meaning with confidence. Instead, each is stored in the canonical model under its own original HRF field name in a clearly-marked raw namespace (e.g. `rawSkillFor`, `rawSkillUth`, ...) — never under an assumed domain concept name (never `Passing` until it is actually confirmed to be Passing). Once manual verification (per `hrf-mapping-strategy.md` §4 — comparing a known player's value against their in-game skill screen) confirms a mapping, that one field is promoted from its raw name to its confirmed domain concept, field by field, not all at once.
+
+Reason:
+D-009 accepted mapping these fields into named domain concepts (`SkillRating`/`SkillSet`) while flagging them "unverified" — but assigning a concept name is itself a claim about meaning, made before that meaning was earned by evidence. That sits too close to the "never invent" principle (`AGENTS.md`, D-002, `validation-rules.md` §7) for comfort: a value literally labeled `Passing` reads as a fact, however many caveats surround it in documentation, and nothing stops it from being consumed as one by a future Training/Tactical engine. Storing the field under its raw, original name defers that claim entirely, at negligible implementation cost, and makes it structurally impossible to build downstream logic on an unconfirmed mapping without deliberately renaming the field first.
+
+Status:
+Accepted (supersedes D-009).
+
+Condition to resolve, per field (not all-or-nothing): once a given raw field is manually verified against the game, promote it from its raw name to the confirmed `SkillType`/domain concept.
+
+Impact not yet applied: `hrf-mapping-strategy.md` §4 still describes D-009's approach (map with a confidence marker) and needs a corresponding rewrite — not done as part of this entry, pending confirmation, so as not to cascade an editorial rewrite without review.
+
+See: D-009 (superseded), [hrf-mapping-strategy.md](docs/hrf-mapping-strategy.md) §4, [canonical-domain-model.md](docs/canonical-domain-model.md) §2–3
+
+---
+
+## D-020
+
+Date: 2026-09-04
+
+Decision:
+Prefer fewer product capabilities delivered with high confidence over more capabilities built on inference the project cannot yet justify. Concretely: "¿Mi entrenamiento fue aprovechado esta semana?" is withdrawn from the implementation backlog (not deleted — see `docs/training-utilization-design.md`, kept as a closed investigation) after officially confirming that `LastMatch_PositionCode` — required to know whether a played position actually counts toward the current training type — has no documented meaning in any official Hattrick source.
+
+Reason:
+The investigation (see `hrf-data-dictionary.md`'s "Investigación cerrada" note) confirmed there is no official basis for the position-eligibility rule this feature would need, and the HRF only exposes a player's most recent match, not the week's total minutes — so any implementation today would rest on an unconfirmed assumption dressed up as a recommendation. This is the same "never invent" principle behind D-019, now applied explicitly at the feature-prioritization level, not only at the field-mapping level: a capability is only built once the data underneath it can support the confidence the project requires, not before.
+
+Status:
+Accepted.
+
+See: [training-utilization-design.md](docs/training-utilization-design.md), [hrf-data-dictionary.md](docs/hrf-data-dictionary.md), D-019
+
+---
+
+## D-021
+
+Date: 2026-09-04
+
+Decision:
+Design constraint for future work — nothing implemented under this entry. The manager will keep a weekly history of HRF files (e.g. `3301513-2026-08-28.hrf`, `3301513-2026-09-03.hrf`), so the system must eventually support comparing two (or more) imports, not just analyzing one. Until that comparison use case is actually built, every design decision must keep the following true:
+
+1. Single-file analysis (today's `pnpm analyze <file>`) is a permanent, independently valid use case — it must never be broken or subsumed by whatever comparison feature comes later.
+2. Week-over-week comparison is a **separate** use case, built on top of two or more single-file analyses — not a rewrite of the existing one.
+3. Comparison must **reuse** `HrfFileReader`, `HrfSectionParser` and `HrfAdapter` exactly as they are — no second parser, no second adapter. Both "the current HRF" and "the previous HRF" go through the same pipeline.
+4. Before persistence exists, comparison can take two file paths directly from the manager (no database needed to start).
+5. Once persistence exists, only *where* "the previous HRF" comes from changes (a file path vs. a stored snapshot/`ImportBatch` — see D-006) — the comparison logic itself must not need to change between the two.
+
+Reason:
+Recorded now, before any comparison feature is designed, specifically so that upcoming single-file work (Financial Health and anything after it) doesn't quietly paint the system into a corner — e.g. by hard-coding assumptions that only one file will ever exist, or by duplicating parsing logic instead of reusing `ImportHrfUseCase`'s pipeline. This is a constraint on *how future work must remain compatible*, not a design of the comparison feature itself, which stays unimplemented and undesigned until its own story.
+
+Status:
+Accepted.
+
+See: `docs/import-result-design.md`, D-006 (snapshots vs. stable identity), D-012 (persistence not yet designed)
