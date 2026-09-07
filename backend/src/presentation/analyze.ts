@@ -39,6 +39,7 @@ function formatSignedAmount(amount: number): string {
 const WARNING_MESSAGES: Record<ImportWarningCode, string> = {
   [ImportWarningCode.TeamStatusUnavailable]: 'no se pudo leer el estado del equipo (moral/confianza/entrenamiento)',
   [ImportWarningCode.FinancialHealthUnavailable]: 'no se pudo leer la salud financiera del club',
+  [ImportWarningCode.LeagueStatusUnavailable]: 'no se pudo leer la posición en la liga',
 };
 
 function formatWarning(warning: ImportWarning): string {
@@ -116,6 +117,19 @@ export async function analyze(filePath: string): Promise<{ lines: string[]; fail
     );
   }
 
+  const leagueStatusDetails: string[] = [];
+  if (result.leagueStatus !== undefined) {
+    const { division, position, points, matchesPlayed, goalsFor, goalsAgainst } = result.leagueStatus;
+    leagueStatusDetails.push(
+      'Liga:',
+      `División: ${division}`,
+      `Posición: ${position}`,
+      `Puntos: ${points} (en ${matchesPlayed} partidos)`,
+      `Goles: ${goalsFor} a favor, ${goalsAgainst} en contra`,
+      '',
+    );
+  }
+
   const lines = [
     SEPARATOR,
     'MENAUS WAR ROOM',
@@ -127,6 +141,7 @@ export async function analyze(filePath: string): Promise<{ lines: string[]; fail
     ...clubDetails,
     ...teamStatusDetails,
     ...financialHealthDetails,
+    ...leagueStatusDetails,
     ...summaryDetails,
     'Estado:',
     '',

@@ -43,6 +43,23 @@ export interface FinancialHealthContract {
 }
 
 /**
+ * The club's own league standing this season — see
+ * docs/data-contracts.md. Canonical names, never the HRF originals
+ * (`serie`, `placering`, `poang`, `spelade`, `gjorda`, `inslappta`). Only
+ * what the HRF states directly — no wins/draws/losses or any other
+ * figure derived from these, since more than one combination of
+ * results can produce the same points total.
+ */
+export interface LeagueStatusContract {
+  division: string;
+  position: number;
+  points: number;
+  matchesPlayed: number;
+  goalsFor: number;
+  goalsAgainst: number;
+}
+
+/**
  * Thrown when a field required by a Data Contract is not present in the
  * HRF file. Per docs/data-contracts.md: a required field that cannot be
  * provided with certainty must reject the record, not invent a value.
@@ -91,26 +108,10 @@ export class HrfAdapter {
       throw new HrfFieldMissingError('HRF file is missing required section "[team]"');
     }
 
-    if (!('stamning' in team.entries)) {
-      throw new HrfFieldMissingError(
-        'HRF file is missing required field "stamning" in section "[team]"',
-      );
-    }
-    if (!('sjalvfortroende' in team.entries)) {
-      throw new HrfFieldMissingError(
-        'HRF file is missing required field "sjalvfortroende" in section "[team]"',
-      );
-    }
-    if (!('trType' in team.entries)) {
-      throw new HrfFieldMissingError(
-        'HRF file is missing required field "trType" in section "[team]"',
-      );
-    }
-
     return {
-      teamSpirit: team.entries.stamning,
-      confidence: team.entries.sjalvfortroende,
-      trainingType: team.entries.trType,
+      teamSpirit: this.requireString(team.entries, 'stamning', 'team'),
+      confidence: this.requireString(team.entries, 'sjalvfortroende', 'team'),
+      trainingType: this.requireString(team.entries, 'trType', 'team'),
     };
   }
 
@@ -126,6 +127,32 @@ export class HrfAdapter {
       lastWeekBalance: this.requireNumber(economy.entries, 'LastWeeksTotal', 'economy'),
       currentWeekProjectedBalance: this.requireNumber(economy.entries, 'ExpectedWeeksTotal', 'economy'),
     };
+  }
+
+  toLeagueStatusContract(sections: HrfSections): LeagueStatusContract {
+    const league = sections.find((section) => section.name === 'league');
+    if (league === undefined) {
+      throw new HrfFieldMissingError('HRF file is missing required section "[league]"');
+    }
+
+    return {
+      division: this.requireString(league.entries, 'serie', 'league'),
+      position: this.requireNumber(league.entries, 'placering', 'league'),
+      points: this.requireNumber(league.entries, 'poang', 'league'),
+      matchesPlayed: this.requireNumber(league.entries, 'spelade', 'league'),
+      goalsFor: this.requireNumber(league.entries, 'gjorda', 'league'),
+      goalsAgainst: this.requireNumber(league.entries, 'inslappta', 'league'),
+    };
+  }
+
+  private requireString(entries: Record<string, string>, key: string, sectionName: string): string {
+    if (!(key in entries) || entries[key].trim().length === 0) {
+      throw new HrfFieldMissingError(
+        `HRF file is missing required field "${key}" in section "[${sectionName}]"`,
+      );
+    }
+
+    return entries[key];
   }
 
   private requireNumber(entries: Record<string, string>, key: string, sectionName: string): number {

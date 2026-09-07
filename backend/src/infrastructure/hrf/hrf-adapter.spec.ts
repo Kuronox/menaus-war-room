@@ -95,6 +95,42 @@ describe('HrfAdapter', () => {
 
       expect(() => adapter.toTeamStatusContract(sections)).toThrow(HrfFieldMissingError);
     });
+
+    it('throws when "stamning" is present but empty, instead of treating it as a valid value', () => {
+      const sections: HrfSections = [
+        {
+          name: 'team',
+          entries: { stamning: '', sjalvfortroende: 'Muy baja', trType: 'Jugadas' },
+        },
+      ];
+      const adapter = new HrfAdapter();
+
+      expect(() => adapter.toTeamStatusContract(sections)).toThrow(HrfFieldMissingError);
+    });
+
+    it('throws when "sjalvfortroende" is present but empty, instead of treating it as a valid value', () => {
+      const sections: HrfSections = [
+        {
+          name: 'team',
+          entries: { stamning: 'serenos', sjalvfortroende: '', trType: 'Jugadas' },
+        },
+      ];
+      const adapter = new HrfAdapter();
+
+      expect(() => adapter.toTeamStatusContract(sections)).toThrow(HrfFieldMissingError);
+    });
+
+    it('throws when "trType" is present but empty, instead of treating it as a valid value', () => {
+      const sections: HrfSections = [
+        {
+          name: 'team',
+          entries: { stamning: 'serenos', sjalvfortroende: 'Muy baja', trType: '' },
+        },
+      ];
+      const adapter = new HrfAdapter();
+
+      expect(() => adapter.toTeamStatusContract(sections)).toThrow(HrfFieldMissingError);
+    });
   });
 
   describe('toFinancialHealthContract', () => {
@@ -164,6 +200,63 @@ describe('HrfAdapter', () => {
       const adapter = new HrfAdapter();
 
       expect(() => adapter.toFinancialHealthContract(sections)).toThrow(HrfFieldMissingError);
+    });
+  });
+
+  describe('toLeagueStatusContract', () => {
+    it('extracts division/position/points/matchesPlayed/goalsFor/goalsAgainst from a real HRF file', () => {
+      const rawText = readFileSync(SAMPLE_HRF_PATH, 'utf-8');
+      const sections = new HrfSectionParser().parse(rawText);
+      const adapter = new HrfAdapter();
+
+      const contract = adapter.toLeagueStatusContract(sections);
+
+      expect(contract).toEqual({
+        division: 'V.181',
+        position: 5,
+        points: 6,
+        matchesPlayed: 6,
+        goalsFor: 6,
+        goalsAgainst: 12,
+      });
+    });
+
+    it('throws when the "[league]" section is missing entirely', () => {
+      const sections: HrfSections = [];
+      const adapter = new HrfAdapter();
+
+      expect(() => adapter.toLeagueStatusContract(sections)).toThrow(HrfFieldMissingError);
+    });
+
+    it('throws when a required field is missing from "[league]"', () => {
+      const sections: HrfSections = [
+        {
+          name: 'league',
+          entries: { serie: 'V.181', spelade: '6', gjorda: '6', inslappta: '12' },
+        },
+      ];
+      const adapter = new HrfAdapter();
+
+      expect(() => adapter.toLeagueStatusContract(sections)).toThrow(HrfFieldMissingError);
+    });
+
+    it('throws when "serie" (division) is present but empty, instead of treating it as a valid value', () => {
+      const sections: HrfSections = [
+        {
+          name: 'league',
+          entries: {
+            serie: '',
+            placering: '5',
+            poang: '6',
+            spelade: '6',
+            gjorda: '6',
+            inslappta: '12',
+          },
+        },
+      ];
+      const adapter = new HrfAdapter();
+
+      expect(() => adapter.toLeagueStatusContract(sections)).toThrow(HrfFieldMissingError);
     });
   });
 

@@ -1,5 +1,9 @@
 import type { Club } from '../domain/club';
-import type { FinancialHealthContract, TeamStatusContract } from '../infrastructure/hrf/hrf-adapter';
+import type {
+  FinancialHealthContract,
+  LeagueStatusContract,
+  TeamStatusContract,
+} from '../infrastructure/hrf/hrf-adapter';
 
 /**
  * A pipeline stage `ImportHrfUseCase` completes, named as a fact already
@@ -51,6 +55,7 @@ export interface ImportSummary {
 export enum ImportWarningCode {
   TeamStatusUnavailable = 'TeamStatusUnavailable',
   FinancialHealthUnavailable = 'FinancialHealthUnavailable',
+  LeagueStatusUnavailable = 'LeagueStatusUnavailable',
 }
 
 /**
@@ -83,5 +88,7 @@ export interface ImportResult {
   teamStatus?: TeamStatusContract;
   /** Present only if "[economy]" was fully readable — absent (not defaulted) otherwise, with a matching entry in `warnings`. */
   financialHealth?: FinancialHealthContract;
+  /** Present only if "[league]" was fully readable — absent (not defaulted) otherwise, with a matching entry in `warnings`. */
+  leagueStatus?: LeagueStatusContract;
   warnings: ImportWarning[];
 }

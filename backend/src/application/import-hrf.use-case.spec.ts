@@ -46,6 +46,14 @@ describe('ImportHrfUseCase', () => {
       lastWeekBalance: 258635,
       currentWeekProjectedBalance: 262880,
     });
+    expect(result.leagueStatus).toEqual({
+      division: 'V.181',
+      position: 6,
+      points: 3,
+      matchesPlayed: 5,
+      goalsFor: 4,
+      goalsAgainst: 12,
+    });
     expect(result.warnings).toEqual([]);
     expect(result.steps.map((s) => [s.step, s.succeeded])).toEqual([
       [ImportStep.FileLoaded, true],
@@ -91,7 +99,7 @@ describe('ImportHrfUseCase', () => {
     });
   });
 
-  it('reports warnings (not a failure) when "[team]" and "[economy]" are unavailable, and still succeeds', async () => {
+  it('reports warnings (not a failure) when "[team]", "[economy]" and "[league]" are unavailable, and still succeeds', async () => {
     const filePath = await writeTempHrf('[basics]\nteamID=1\nteamName=Test\n');
     const useCase = ImportHrfUseCase.create();
 
@@ -101,9 +109,53 @@ describe('ImportHrfUseCase', () => {
     expect(result.club).toBeInstanceOf(Club);
     expect(result.teamStatus).toBeUndefined();
     expect(result.financialHealth).toBeUndefined();
+    expect(result.leagueStatus).toBeUndefined();
     expect(result.warnings).toEqual([
       { code: ImportWarningCode.TeamStatusUnavailable, detail: expect.any(String) },
       { code: ImportWarningCode.FinancialHealthUnavailable, detail: expect.any(String) },
+      { code: ImportWarningCode.LeagueStatusUnavailable, detail: expect.any(String) },
+    ]);
+  });
+
+  it('reports only LeagueStatusUnavailable when "[league]" alone is missing, with team status and financial health intact', async () => {
+    const filePath = await writeTempHrf(
+      [
+        '[basics]',
+        'teamID=1',
+        'teamName=Test',
+        '[team]',
+        'stamning=serenos',
+        'sjalvfortroende=Muy baja',
+        'trType=Jugadas',
+        '[economy]',
+        'Cash=100',
+        'ExpectedCash=200',
+        'LastWeeksTotal=10',
+        'ExpectedWeeksTotal=20',
+        '',
+      ].join('\n'),
+    );
+    const useCase = ImportHrfUseCase.create();
+
+    const result = await useCase.execute(filePath);
+
+    expect(result.succeeded).toBe(true);
+    expect(result.club).toBeInstanceOf(Club);
+    expect(result.club?.id).toBe('1');
+    expect(result.teamStatus).toEqual({
+      teamSpirit: 'serenos',
+      confidence: 'Muy baja',
+      trainingType: 'Jugadas',
+    });
+    expect(result.financialHealth).toEqual({
+      cash: 100,
+      expectedCash: 200,
+      lastWeekBalance: 10,
+      currentWeekProjectedBalance: 20,
+    });
+    expect(result.leagueStatus).toBeUndefined();
+    expect(result.warnings).toEqual([
+      { code: ImportWarningCode.LeagueStatusUnavailable, detail: expect.any(String) },
     ]);
   });
 

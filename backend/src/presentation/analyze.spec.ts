@@ -47,6 +47,11 @@ describe('analyze', () => {
       'Tendencia respecto a tu última importación: no disponible (el sistema aún no conserva historial entre ejecuciones)',
     );
     expect(report).not.toMatch(/[€$]/);
+    expect(report).toContain('Liga:');
+    expect(report).toContain('División: V.181');
+    expect(report).toContain('Posición: 6');
+    expect(report).toContain('Puntos: 3 (en 5 partidos)');
+    expect(report).toContain('Goles: 4 a favor, 12 en contra');
     expect(report).toContain('Resumen HRF:');
     expect(report).toContain('Secciones detectadas: 31');
     expect(report).toContain('Jugadores detectados: 20');
@@ -70,6 +75,7 @@ describe('analyze', () => {
     expect(report).toContain('Avisos:');
     expect(report).toContain('⚠ no se pudo leer el estado del equipo (moral/confianza/entrenamiento)');
     expect(report).toContain('⚠ no se pudo leer la salud financiera del club');
+    expect(report).toContain('⚠ no se pudo leer la posición en la liga');
   });
 
   it('reports a read failure in Spanish, without an HRF summary or Club/ID', async () => {
@@ -81,6 +87,7 @@ describe('analyze', () => {
     expect(report).not.toContain('Club:');
     expect(report).not.toContain('ID:');
     expect(report).not.toContain('Finanzas:');
+    expect(report).not.toContain('Liga:');
     // The raw Node error (English, e.g. "ENOENT: ...") must never reach the
     // manager — only the translated Spanish message.
     expect(report).toContain('✗ Archivo leído: no se pudo leer el archivo');

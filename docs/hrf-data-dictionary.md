@@ -76,6 +76,8 @@ No se encontró una página oficial de Wiki dedicada a documentar los nombres de
 | `poang` | 3 | 6 | Puntos | 🔵 — ídem |
 | `placering` | 6 | 5 | Posición en la tabla | 🔵 — ídem |
 
+**Verificación previa a la implementación de `LeagueStatusContract` (2026-09-07):** se confirmó que el 🔵 de estos cinco campos es por **falta de documentación oficial**, no por ambigüedad real de significado — a diferencia de `mkt` (¿TSI o Valor de Mercado?) o de los 10 campos de habilidad, ninguno de estos cinco tiene una segunda interpretación plausible dentro de Hattrick. La evidencia entre los dos archivos reales es además mutuamente consistente: `spelade` 5→6, `poang` 3→6 (+3, una victoria), `placering` 6→5, `gjorda` 4→6, `inslappta` 12→12 — exactamente el patrón aritmético de un partido ganado 2-0. No se sube el nivel 🔵 (sigue sin existir una página oficial), pero se documenta por qué no bloquea su uso.
+
 **Limitación sin cambios:** esta sección solo contiene el resumen del propio club; el HRF no incluye la tabla completa de la liga.
 
 ---
