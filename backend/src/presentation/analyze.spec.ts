@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { analyze } from './analyze';
+import { formatAmount, formatSignedAmount } from './report-formatting';
 
 let tempDir: string | undefined;
 
@@ -33,15 +34,15 @@ describe('analyze', () => {
     expect(report).toContain('Confianza: Muy baja');
     expect(report).toContain('Entrenamiento: Jugadas');
     expect(report).toContain('Finanzas:');
-    expect(report).toContain(`Efectivo actual: ${(15105114).toLocaleString('es')}`);
+    expect(report).toContain(`Efectivo actual: ${formatAmount(15105114)}`);
     expect(report).toContain(
-      `Efectivo esperado tras la próxima actualización: ${(15367994).toLocaleString('es')}`,
+      `Efectivo esperado tras la próxima actualización: ${formatAmount(15367994)}`,
     );
     expect(report).toContain(
-      `Balance de la semana pasada (cerrada): +${(258635).toLocaleString('es')}`,
+      `Balance de la semana pasada (cerrada): ${formatSignedAmount(258635)}`,
     );
     expect(report).toContain(
-      `Balance proyectado de esta semana (en curso): +${(262880).toLocaleString('es')}`,
+      `Balance proyectado de esta semana (en curso): ${formatSignedAmount(262880)}`,
     );
     expect(report).toContain(
       'Tendencia respecto a tu última importación: no disponible (el sistema aún no conserva historial entre ejecuciones)',

@@ -1,59 +1,8 @@
 import { performance } from 'node:perf_hooks';
 import { basename } from 'node:path';
 import { ImportHrfUseCase } from '../application/import-hrf.use-case';
-import {
-  ImportErrorCode,
-  ImportStep,
-  ImportWarningCode,
-  type ImportStepOutcome,
-  type ImportWarning,
-} from '../application/import-result';
-
-const SEPARATOR = '='.repeat(36);
-
-const STEP_LABELS: Record<ImportStep, string> = {
-  [ImportStep.FileLoaded]: 'Archivo leído',
-  [ImportStep.SectionsParsed]: 'HRF parseado',
-  [ImportStep.ContractGenerated]: 'Data Contract generado',
-  [ImportStep.ClubCreated]: 'Entidad Club creada',
-};
-
-const ERROR_MESSAGES: Record<ImportErrorCode, string> = {
-  [ImportErrorCode.FileLoadFailed]: 'no se pudo leer el archivo',
-  [ImportErrorCode.MissingRequiredField]: 'falta un campo obligatorio en el HRF',
-  [ImportErrorCode.InvalidClub]: 'los datos del club no son válidos',
-  [ImportErrorCode.Unknown]: 'error desconocido',
-};
-
-// No currency symbol — no source in this project confirms which currency
-// these figures are in (see docs/financial-health-design.md).
-function formatAmount(amount: number): string {
-  return amount.toLocaleString('es');
-}
-
-function formatSignedAmount(amount: number): string {
-  const formatted = formatAmount(Math.abs(amount));
-  return amount < 0 ? `-${formatted}` : `+${formatted}`;
-}
-
-const WARNING_MESSAGES: Record<ImportWarningCode, string> = {
-  [ImportWarningCode.TeamStatusUnavailable]: 'no se pudo leer el estado del equipo (moral/confianza/entrenamiento)',
-  [ImportWarningCode.FinancialHealthUnavailable]: 'no se pudo leer la salud financiera del club',
-  [ImportWarningCode.LeagueStatusUnavailable]: 'no se pudo leer la posición en la liga',
-};
-
-function formatWarning(warning: ImportWarning): string {
-  return `⚠ ${WARNING_MESSAGES[warning.code]}`;
-}
-
-function formatStep(outcome: ImportStepOutcome): string {
-  const label = STEP_LABELS[outcome.step];
-  if (outcome.succeeded) {
-    return `✓ ${label}`;
-  }
-  const reason = outcome.errorCode === undefined ? 'error desconocido' : ERROR_MESSAGES[outcome.errorCode];
-  return `✗ ${label}: ${reason}`;
-}
+import { compareHrf } from './compare-hrf';
+import { formatAmount, formatSignedAmount, formatStep, formatWarning, SEPARATOR } from './report-formatting';
 
 /**
  * Builds the console report as a list of lines, without printing or
@@ -157,15 +106,21 @@ export async function analyze(filePath: string): Promise<{ lines: string[]; fail
 }
 
 async function main(): Promise<void> {
-  const filePath = process.argv[2];
+  const firstPath = process.argv[2];
+  const secondPath = process.argv[3];
 
-  if (filePath === undefined) {
+  if (firstPath === undefined) {
     console.error('Uso: pnpm analyze <ruta-al-archivo.hrf>');
+    console.error('     pnpm analyze <hrf-anterior.hrf> <hrf-actual.hrf>');
     process.exitCode = 1;
     return;
   }
 
-  const { lines, failed } = await analyze(filePath);
+  // One path → single-file report (unchanged, D-021 §1). Two paths → the
+  // comparison report, built from two independent ImportResult (see
+  // docs/hrf-comparison-design.md).
+  const { lines, failed } =
+    secondPath === undefined ? await analyze(firstPath) : await compareHrf(firstPath, secondPath);
   console.log(lines.join('\n'));
 
   if (failed) {
