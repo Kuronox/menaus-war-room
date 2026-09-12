@@ -117,10 +117,14 @@ Si no hay ningún jugador en `PossiblyUnutilized`, se omite esa segunda parte (n
 
 ---
 
-## Pendiente de tu confirmación antes de implementar
+## Resolución final de las tres preguntas pendientes (cierre formal de esta investigación)
 
-1. ¿Aceptás esta versión parcial (piso de minutos del último partido, sin considerar posición) como primera entrega, con las limitaciones explícitas de arriba?
-2. ¿El umbral de "recomendación accionable" te parece bien tal cual (mostrar solo la lista de `PossiblyUnutilized`, con el conteo agregado de los demás), o preferís otro formato?
-3. Investigar la tabla de `LastMatch_PositionCode` (para poder aplicar la Limitación 2 más adelante) — ¿lo dejamos como pregunta abierta para una historia futura, o te interesa que lo investigue ahora también?
+Estas tres preguntas quedaron sin resolver en el cuerpo del documento pese a que el encabezado ya decía "investigación cerrada" — quedan respondidas acá, explícitamente, para que el documento no se contradiga a sí mismo.
+
+1. **¿Aceptar la versión parcial (piso de minutos del último partido, sin posición) como primera entrega?** No. Ya sabemos, por esta misma investigación, que el HRF no contiene información suficiente para responder con confianza "¿mi entrenamiento fue aprovechado?". Mostrar un "piso" de minutos puede inducir a conclusiones erróneas — el manager vería un número que parece una respuesta, aunque el diseño lo marque como parcial.
+2. **¿El formato con `PossiblyUnutilized` (lista + conteo agregado) está bien?** No se introduce `PossiblyUnutilized`. Aunque el nombre sea prudente ("possibly", no "unutilized"), sigue siendo una interpretación derivada de datos incompletos (Limitación 1). Va en contra de D-020 (formalizado después de este documento): priorizar menos funcionalidades con alta confianza antes que más funcionalidades apoyadas en inferencias.
+3. **¿Investigar ahora la tabla de `LastMatch_PositionCode`?** No. Esa línea ya quedó suficientemente explorada: no existe documentación oficial del HRF para ese campo; CHPP usa códigos distintos (`RoleID` 1–21, `PositionCode` 1–11, ninguno coincide con los valores 100–113 del `.hrf`); resolverlo exigiría correlación empírica o una segunda fuente — ver la investigación cerrada correspondiente en `hrf-data-dictionary.md`.
+
+**Esta investigación queda archivada.** Se retoma únicamente si una historia concreta la vuelve necesaria, o cuando el proyecto incorpore CHPP u otra fuente que permita determinar posición y minutos semanales con evidencia suficiente. Mientras tanto, el roadmap continúa con funcionalidades construidas sobre datos confirmados.
 
 No se ha escrito ninguna línea de implementación.

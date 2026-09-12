@@ -146,7 +146,9 @@ También documenta (S6) que "Doctor" fue renombrado a "Medic" y "Physiotherapist
 
 ## [economy] — Finanzas del club
 
-Sin cambios de fondo: esta sección ya estaba mayormente **✅ Confirmada por evidencia interna directa** en la Revisión 1 (coincidencias numéricas exactas entre `ExpectedCash`/`Cash` y `ExpectedWeeksTotal`/`LastWeeksTotal` de una semana a otra), lo cual sigue siendo el tipo de evidencia más fuerte posible. No se encontró una página oficial de Hattrick que documente estos nombres de campo específicos del `.hrf` (el Manual sí documenta el sistema económico general — ingresos por espectadores, patrocinadores, etc. — pero no bajo estos nombres de campo), así que se mantiene la clasificación de la Revisión 1.
+**Corrección (Revisión 2, tercer `.hrf` disponible):** la Revisión 1 daba como "✅ Confirmada por evidencia interna directa" la coincidencia exacta entre `ExpectedCash`/`Cash` y `ExpectedWeeksTotal`/`LastWeeksTotal` de una semana a la siguiente, basada en un único par de archivos. Un tercer `.hrf` la contradice: la transición semana 2→3 no coincide en absoluto (ver `docs/three-snapshot-investigation.md`, sección 3, y `docs/expected-cash-investigation.md`). Esa coincidencia **entre archivos consecutivos** deja de tratarse como confirmada.
+
+Lo que sí sigue ✅ confirmado por evidencia interna directa, verificado ahora en los tres archivos sin excepción, es la aritmética **dentro de un mismo archivo**: `ExpectedWeeksTotal = IncomeSum − CostsSum` y `ExpectedCash = Cash + ExpectedWeeksTotal`. No se encontró una página oficial de Hattrick que documente estos nombres de campo específicos del `.hrf` (el Manual y la Wiki sí documentan el sistema económico general — ingresos por espectadores, patrocinadores, la actualización semanal, y que la cifra "esperada" es una proyección, no un cierre — ver `docs/expected-cash-investigation.md` — pero no bajo estos nombres de campo).
 
 ---
 

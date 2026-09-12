@@ -8,12 +8,22 @@ Diseña el bloque mínimo de FINANCES para el reporte, usando únicamente campos
 
 ## Qué ya está confirmado (sin investigación nueva)
 
-`hrf-data-dictionary.md` ya marca `[economy]` como la sección con más confianza del archivo — no por autoevidencia de nombre solamente, sino por **coincidencias numéricas exactas entre los dos `.hrf` reales** (evidencia empírica directa, no solo hipótesis):
+`hrf-data-dictionary.md` ya marca `[economy]` como la sección con más confianza del archivo. Con los tres `.hrf` reales disponibles hoy, esto es lo que se sostiene como **identidad aritmética dentro de un mismo archivo** (evidencia empírica directa, exacta en los tres, no solo hipótesis):
 
-- `ExpectedCash` de una semana = `Cash` real de la semana siguiente (confirmado, exacto).
-- `LastWeeksTotal` de una semana = `ExpectedWeeksTotal` de la semana anterior (confirmado, exacto).
+- `ExpectedWeeksTotal = IncomeSum − CostsSum`, exacto en las tres semanas (p. ej. semana 2: 2.021.845 − 468.545 = 1.553.300).
+- `ExpectedCash = Cash + ExpectedWeeksTotal`, exacto en las tres semanas (p. ej. semana 2: 15.367.994 + 1.553.300 = 16.921.294). Este segundo punto no estaba documentado en la versión anterior de este archivo — ver `docs/expected-cash-investigation.md`.
 
-Verifiqué además, con los mismos dos archivos, que `ExpectedWeeksTotal = IncomeSum − CostsSum` cuadra exactamente (2.021.845 − 468.545 = 1.553.300) — un tercer punto de confirmación aritmética, no solo semántica.
+**Ya no se afirma** que `ExpectedCash`/`ExpectedWeeksTotal` de una semana igualen exactamente `Cash`/`LastWeeksTotal` de la semana siguiente — ver "Limitación conocida" más abajo. Esa afirmación aparecía en una versión anterior de este documento, basada únicamente en los dos primeros `.hrf`, y un tercer archivo la contradijo (`docs/three-snapshot-investigation.md`, sección 3).
+
+---
+
+## Limitación conocida: `ExpectedCash`/`ExpectedWeeksTotal` son una proyección al momento de exportar, no una promesa
+
+`ExpectedCash` y `ExpectedWeeksTotal` representan una proyección calculada en el momento de exportar el HRF — no deben compararse como una igualdad exacta con el snapshot de la semana siguiente, ya que entre ambas exportaciones pueden ocurrir eventos económicos (resultado de un partido, altas/bajas de plantilla, etc.) que modifican el resultado final.
+
+Evidencia: en la transición semana 1→2 la proyección coincidió exactamente con el `Cash` real de la semana siguiente; en la transición semana 2→3 no coincidió en absoluto (diferencia de 269.955 en `Cash`, de 1.284.845 en el balance semanal). Ver `docs/three-snapshot-investigation.md` (sección 3) para el detalle numérico y `docs/expected-cash-investigation.md` para el análisis de por qué ocurre esto.
+
+Esto no invalida ninguno de los cuatro campos como **hecho del archivo que los contiene** — `ExpectedCash` sigue siendo exactamente lo que ese HRF declara para ese momento. Lo que deja de sostenerse es tratarlo como un predictor confiable de un HRF futuro. Ninguna funcionalidad de este proyecto compara todavía `ExpectedCash`/`ExpectedWeeksTotal` de una importación contra el resultado real de la siguiente (el comparador de v0.4.0 compara cada campo contra sí mismo entre dos archivos, nunca `ExpectedCash` contra `Cash`) — así que esta corrección no revierte ningún comportamiento ya implementado, solo corrige una afirmación de este documento de diseño.
 
 ---
 
@@ -22,7 +32,7 @@ Verifiqué además, con los mismos dos archivos, que `ExpectedWeeksTotal = Incom
 | Campo HRF | Pregunta del manager que responde | Por qué este y no otro |
 |---|---|---|
 | `Cash` | "¿Cuánto efectivo tengo ahora mismo?" | El dato más básico de salud financiera; ✅ confirmado, sin ambigüedad |
-| `ExpectedCash` | "¿Cuánto voy a tener después de la próxima actualización?" | Ya viene calculado por el propio juego — no es una proyección nuestra, es la proyección de Hattrick, confirmada exacta contra el archivo siguiente |
+| `ExpectedCash` | "¿Cuánto proyecta el juego que voy a tener después de la próxima actualización?" | Ya viene calculado por el propio juego a partir de `Cash` y `ExpectedWeeksTotal` del mismo archivo (identidad exacta, ver arriba) — pero es una proyección al momento de exportar, no una promesa verificada contra el archivo siguiente (ver "Limitación conocida") |
 | `LastWeeksTotal` | "¿Gané o perdí dinero la semana que ya cerró?" | Balance neto ya cerrado — un hecho, no una estimación |
 | `ExpectedWeeksTotal` | "¿Cómo voy en la semana en curso, hasta ahora?" | Balance neto de la semana todavía abierta — se muestra explícitamente como proyección, no como cierre |
 
