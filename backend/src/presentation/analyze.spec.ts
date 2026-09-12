@@ -53,6 +53,16 @@ describe('analyze', () => {
     expect(report).toContain('Posición: 6');
     expect(report).toContain('Puntos: 3 (en 5 partidos)');
     expect(report).toContain('Goles: 4 a favor, 12 en contra');
+    expect(report).toContain('Plantilla:');
+    expect(report).toContain('Jugadores: 20');
+    expect(report).toContain('Lesionados: 1');
+    expect(report).toContain('Con amonestaciones acumuladas: 4');
+    expect(report).toContain(
+      'Óscar Ayala — 22 años — Ninguna — Sin lesión — Sanciones acumuladas: 0 — Último partido: 3.5 (91 min, 26/08/2026)',
+    );
+    expect(report).toContain(
+      'Vítězslav Pazour — 32 años — Imprevisible — Lesión: 2 semanas restantes — Sanciones acumuladas: 0 — Último partido: 5.5 (18 min, 23/08/2026)',
+    );
     expect(report).toContain('Resumen HRF:');
     expect(report).toContain('Secciones detectadas: 31');
     expect(report).toContain('Jugadores detectados: 20');
@@ -77,6 +87,8 @@ describe('analyze', () => {
     expect(report).toContain('⚠ no se pudo leer el estado del equipo (moral/confianza/entrenamiento)');
     expect(report).toContain('⚠ no se pudo leer la salud financiera del club');
     expect(report).toContain('⚠ no se pudo leer la posición en la liga');
+    expect(report).toContain('⚠ no se pudo leer la plantilla de jugadores');
+    expect(report).not.toContain('Plantilla:');
   });
 
   it('reports a read failure in Spanish, without an HRF summary or Club/ID', async () => {
@@ -89,6 +101,7 @@ describe('analyze', () => {
     expect(report).not.toContain('ID:');
     expect(report).not.toContain('Finanzas:');
     expect(report).not.toContain('Liga:');
+    expect(report).not.toContain('Plantilla:');
     // The raw Node error (English, e.g. "ENOENT: ...") must never reach the
     // manager — only the translated Spanish message.
     expect(report).toContain('✗ Archivo leído: no se pudo leer el archivo');

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { HrfSections } from './hrf-section-parser';
+import type { HrfSections, Section } from './hrf-section-parser';
 
 /**
  * The Club-shaped Data Contract this adapter can produce from an HRF file
@@ -57,6 +57,30 @@ export interface LeagueStatusContract {
   matchesPlayed: number;
   goalsFor: number;
   goalsAgainst: number;
+}
+
+/**
+ * One player's roster summary — see docs/roster-design.md. Unlike the
+ * other contracts, almost every field is optional: a missing per-player
+ * field never excludes that player from the roster, it is reported as
+ * "unavailable" for that one field (Presentation's job) instead of
+ * hiding the whole row.
+ *
+ * `speciality` and `injuryWeeksRemaining` both distinguish three states,
+ * not two: a value, `null` (a confirmed fact — no speciality / no active
+ * injury), and `undefined` (the source field was missing entirely — we
+ * don't know). Never invent one for the other (see docs/roster-design.md).
+ */
+export interface PlayerSummaryContract {
+  playerId: string;
+  name?: string;
+  age?: number;
+  speciality?: string | null;
+  injuryWeeksRemaining?: number | null;
+  accumulatedWarnings?: number;
+  lastMatchRating?: number;
+  lastMatchPlayedMinutes?: number;
+  lastMatchDate?: string;
 }
 
 /**
@@ -145,6 +169,97 @@ export class HrfAdapter {
     };
   }
 
+  /**
+   * One summary row per player in the squad — see docs/roster-design.md.
+   * Excludes the coach, same criterion as countPlayers(). Throws only
+   * when there is no player section to build a roster from at all; a
+   * player missing an individual field is still included, with that
+   * field left undefined.
+   */
+  toRosterContract(sections: HrfSections): PlayerSummaryContract[] {
+    const playerSections = this.getPlayerSections(sections);
+    if (playerSections.length === 0) {
+      throw new HrfFieldMissingError('HRF file has no "[player<ID>]" sections to build a roster from');
+    }
+
+    return playerSections.map((section) => this.toPlayerSummary(section));
+  }
+
+  private toPlayerSummary(section: Section): PlayerSummaryContract {
+    const { entries } = section;
+    return {
+      playerId: section.name.replace(/^player/, ''),
+      name: this.optionalString(entries, 'name'),
+      age: this.optionalNumber(entries, 'ald'),
+      speciality: this.optionalSpeciality(entries),
+      injuryWeeksRemaining: this.optionalInjuryWeeksRemaining(entries),
+      accumulatedWarnings: this.optionalNumber(entries, 'warnings'),
+      lastMatchRating: this.optionalNumber(entries, 'LastMatch_Rating'),
+      lastMatchPlayedMinutes: this.optionalNumber(entries, 'LastMatch_PlayedMinutes'),
+      lastMatchDate: this.optionalString(entries, 'LastMatch_Date'),
+    };
+  }
+
+  /**
+   * Every `[player<ID>]` section, excluding the coach — shared by
+   * countPlayers() and toRosterContract() so both apply the exact same
+   * criterion. Relies on `[xtra].TrainerID` (✅-confirmed in Sprint 0); if
+   * that reference is unavailable, falls back to every `[player<ID>]`
+   * section, coach included, same as before this method was extracted.
+   */
+  private getPlayerSections(sections: HrfSections): Section[] {
+    const xtra = sections.find((section) => section.name === 'xtra');
+    const trainerId = xtra?.entries.TrainerID;
+    const trainerSectionName = trainerId === undefined ? undefined : `player${trainerId}`;
+
+    return sections.filter(
+      (section) => /^player\d+$/.test(section.name) && section.name !== trainerSectionName,
+    );
+  }
+
+  /** Absent or blank → undefined. Never throws — for fields where a per-player gap is acceptable. */
+  private optionalString(entries: Record<string, string>, key: string): string | undefined {
+    if (!(key in entries) || entries[key].trim().length === 0) {
+      return undefined;
+    }
+    return entries[key];
+  }
+
+  /** Absent, blank, or not a valid number → undefined. Never throws. */
+  private optionalNumber(entries: Record<string, string>, key: string): number | undefined {
+    if (!(key in entries) || entries[key].trim().length === 0) {
+      return undefined;
+    }
+    const value = Number(entries[key]);
+    return Number.isNaN(value) ? undefined : value;
+  }
+
+  /**
+   * `specialityLabel` absent → undefined (unknown). Present but blank →
+   * `null` (a confirmed fact: `speciality=0`, no speciality — see
+   * hrf-data-dictionary.md). Present and non-blank → the label itself.
+   */
+  private optionalSpeciality(entries: Record<string, string>): string | null | undefined {
+    if (!('specialityLabel' in entries)) {
+      return undefined;
+    }
+    return entries.specialityLabel.trim().length === 0 ? null : entries.specialityLabel;
+  }
+
+  /**
+   * `ska` absent → undefined (unknown). `ska=-1` → `null` (confirmed no
+   * active injury — see docs/roster-design.md on why `-1` is treated this
+   * way despite not being part of the officially documented scale).
+   * Any other valid number → weeks remaining, as-is.
+   */
+  private optionalInjuryWeeksRemaining(entries: Record<string, string>): number | null | undefined {
+    const value = this.optionalNumber(entries, 'ska');
+    if (value === undefined) {
+      return undefined;
+    }
+    return value === -1 ? null : value;
+  }
+
   private requireString(entries: Record<string, string>, key: string, sectionName: string): string {
     if (!(key in entries) || entries[key].trim().length === 0) {
       throw new HrfFieldMissingError(
@@ -184,12 +299,6 @@ export class HrfAdapter {
    * every `[player<ID>]` section, coach included.
    */
   countPlayers(sections: HrfSections): number {
-    const xtra = sections.find((section) => section.name === 'xtra');
-    const trainerId = xtra?.entries.TrainerID;
-    const trainerSectionName = trainerId === undefined ? undefined : `player${trainerId}`;
-
-    return sections.filter(
-      (section) => /^player\d+$/.test(section.name) && section.name !== trainerSectionName,
-    ).length;
+    return this.getPlayerSections(sections).length;
   }
 }

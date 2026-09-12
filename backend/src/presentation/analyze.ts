@@ -3,6 +3,7 @@ import { basename } from 'node:path';
 import { ImportHrfUseCase } from '../application/import-hrf.use-case';
 import { compareHrf } from './compare-hrf';
 import { formatAmount, formatSignedAmount, formatStep, formatWarning, SEPARATOR } from './report-formatting';
+import { formatRosterBlock } from './roster-report';
 
 /**
  * Builds the console report as a list of lines, without printing or
@@ -79,6 +80,11 @@ export async function analyze(filePath: string): Promise<{ lines: string[]; fail
     );
   }
 
+  const rosterDetails: string[] = [];
+  if (result.roster !== undefined) {
+    rosterDetails.push(...formatRosterBlock(result.roster), '');
+  }
+
   const lines = [
     SEPARATOR,
     'MENAUS WAR ROOM',
@@ -91,6 +97,7 @@ export async function analyze(filePath: string): Promise<{ lines: string[]; fail
     ...teamStatusDetails,
     ...financialHealthDetails,
     ...leagueStatusDetails,
+    ...rosterDetails,
     ...summaryDetails,
     'Estado:',
     '',

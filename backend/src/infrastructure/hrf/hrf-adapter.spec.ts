@@ -260,6 +260,113 @@ describe('HrfAdapter', () => {
     });
   });
 
+  describe('toRosterContract', () => {
+    it('builds one summary per player from a real HRF file, excluding the coach', () => {
+      const rawText = readFileSync(SAMPLE_HRF_PATH, 'utf-8');
+      const sections = new HrfSectionParser().parse(rawText);
+      const adapter = new HrfAdapter();
+
+      const roster = adapter.toRosterContract(sections);
+
+      expect(roster).toHaveLength(20);
+      expect(roster.some((player) => player.playerId === '512205178')).toBe(false);
+    });
+
+    it('translates a real player with no speciality and no active injury (empty label, ska=-1)', () => {
+      const rawText = readFileSync(SAMPLE_HRF_PATH, 'utf-8');
+      const sections = new HrfSectionParser().parse(rawText);
+      const adapter = new HrfAdapter();
+
+      const roster = adapter.toRosterContract(sections);
+      const player = roster.find((p) => p.playerId === '512205182');
+
+      expect(player).toEqual({
+        playerId: '512205182',
+        name: 'Joseph Rago',
+        age: 20,
+        speciality: null,
+        injuryWeeksRemaining: null,
+        accumulatedWarnings: 0,
+        lastMatchRating: 4,
+        lastMatchPlayedMinutes: 92,
+        lastMatchDate: '2026-08-30 02:00:00',
+      });
+    });
+
+    it('translates a real player with a speciality and an active injury (ska > -1)', () => {
+      const rawText = readFileSync(SAMPLE_HRF_PATH, 'utf-8');
+      const sections = new HrfSectionParser().parse(rawText);
+      const adapter = new HrfAdapter();
+
+      const roster = adapter.toRosterContract(sections);
+      const player = roster.find((p) => p.playerId === '464530779');
+
+      expect(player?.speciality).toBe('Imprevisible');
+      expect(player?.injuryWeeksRemaining).toBe(1);
+    });
+
+    it('throws when there are no "[player<ID>]" sections at all', () => {
+      const sections: HrfSections = [{ name: 'basics', entries: {} }];
+      const adapter = new HrfAdapter();
+
+      expect(() => adapter.toRosterContract(sections)).toThrow(HrfFieldMissingError);
+    });
+
+    it('includes every player even when some have missing fields, instead of excluding them', () => {
+      const sections: HrfSections = [
+        { name: 'player111', entries: { name: 'Completo', ald: '25' } },
+        { name: 'player222', entries: {} },
+      ];
+      const adapter = new HrfAdapter();
+
+      const roster = adapter.toRosterContract(sections);
+
+      expect(roster).toHaveLength(2);
+      const incomplete = roster.find((p) => p.playerId === '222');
+      expect(incomplete).toEqual({ playerId: '222' });
+    });
+
+    it('distinguishes "ska" absent (unknown) from "ska=-1" (confirmed no injury)', () => {
+      const sections: HrfSections = [
+        { name: 'player111', entries: { ska: '-1' } },
+        { name: 'player222', entries: {} },
+      ];
+      const adapter = new HrfAdapter();
+
+      const roster = adapter.toRosterContract(sections);
+
+      expect(roster.find((p) => p.playerId === '111')?.injuryWeeksRemaining).toBeNull();
+      expect(roster.find((p) => p.playerId === '222')?.injuryWeeksRemaining).toBeUndefined();
+    });
+
+    it('distinguishes "specialityLabel" absent (unknown) from present-but-empty (confirmed no speciality)', () => {
+      const sections: HrfSections = [
+        { name: 'player111', entries: { specialityLabel: '' } },
+        { name: 'player222', entries: {} },
+      ];
+      const adapter = new HrfAdapter();
+
+      const roster = adapter.toRosterContract(sections);
+
+      expect(roster.find((p) => p.playerId === '111')?.speciality).toBeNull();
+      expect(roster.find((p) => p.playerId === '222')?.speciality).toBeUndefined();
+    });
+
+    it('excludes the coach even when some other player field is missing, using the same criterion as countPlayers', () => {
+      const sections: HrfSections = [
+        { name: 'xtra', entries: { TrainerID: '999' } },
+        { name: 'player999', entries: {} },
+        { name: 'player111', entries: { name: 'Jugador' } },
+      ];
+      const adapter = new HrfAdapter();
+
+      const roster = adapter.toRosterContract(sections);
+
+      expect(roster).toHaveLength(1);
+      expect(roster[0].playerId).toBe('111');
+    });
+  });
+
   describe('countPlayers', () => {
     it('counts player sections in a real HRF file, excluding the coach', () => {
       const rawText = readFileSync(SAMPLE_HRF_PATH, 'utf-8');

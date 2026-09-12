@@ -2,6 +2,7 @@ import type { Club } from '../domain/club';
 import type {
   FinancialHealthContract,
   LeagueStatusContract,
+  PlayerSummaryContract,
   TeamStatusContract,
 } from '../infrastructure/hrf/hrf-adapter';
 
@@ -56,6 +57,7 @@ export enum ImportWarningCode {
   TeamStatusUnavailable = 'TeamStatusUnavailable',
   FinancialHealthUnavailable = 'FinancialHealthUnavailable',
   LeagueStatusUnavailable = 'LeagueStatusUnavailable',
+  RosterUnavailable = 'RosterUnavailable',
 }
 
 /**
@@ -90,5 +92,12 @@ export interface ImportResult {
   financialHealth?: FinancialHealthContract;
   /** Present only if "[league]" was fully readable — absent (not defaulted) otherwise, with a matching entry in `warnings`. */
   leagueStatus?: LeagueStatusContract;
+  /**
+   * Present only if at least one player section could be read — absent
+   * (not an empty array) otherwise, with a matching entry in `warnings`.
+   * Unlike the other three, individual players are never excluded for
+   * missing a field — see PlayerSummaryContract and docs/roster-design.md.
+   */
+  roster?: PlayerSummaryContract[];
   warnings: ImportWarning[];
 }

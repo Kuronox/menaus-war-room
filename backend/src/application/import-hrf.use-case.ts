@@ -26,9 +26,10 @@ function errorMessage(error: unknown): string {
  * HrfFileReader, HrfSectionParser, HrfAdapter and Club.create() are fully
  * encapsulated here — nothing outside this class touches them directly
  * for this pipeline. A failed step stops the pipeline (later steps are
- * not attempted). Team status, financial health and league status are
- * best-effort enrichments: their failure never stops the pipeline, it is
- * recorded as an `ImportWarning` instead — see import-result.ts.
+ * not attempted). Team status, financial health, league status and the
+ * player roster are best-effort enrichments: their failure never stops
+ * the pipeline, it is recorded as an `ImportWarning` instead — see
+ * import-result.ts.
  *
  * Design note (D-015): depends directly on the concrete
  * HrfFileReader/HrfSectionParser/HrfAdapter, not on an abstract Import
@@ -107,6 +108,13 @@ export class ImportHrfUseCase {
       warnings.push({ code: ImportWarningCode.LeagueStatusUnavailable, detail: errorMessage(error) });
     }
 
+    let roster: ImportResult['roster'];
+    try {
+      roster = this.hrfAdapter.toRosterContract(sections);
+    } catch (error) {
+      warnings.push({ code: ImportWarningCode.RosterUnavailable, detail: errorMessage(error) });
+    }
+
     let clubId: string;
     let clubName: string;
     try {
@@ -123,14 +131,14 @@ export class ImportHrfUseCase {
             : ImportErrorCode.Unknown,
         errorDetail: errorMessage(error),
       });
-      return { succeeded: false, steps, summary, teamStatus, financialHealth, leagueStatus, warnings };
+      return { succeeded: false, steps, summary, teamStatus, financialHealth, leagueStatus, roster, warnings };
     }
     steps.push({ step: ImportStep.ContractGenerated, succeeded: true });
 
     try {
       const club = Club.create(clubId, clubName);
       steps.push({ step: ImportStep.ClubCreated, succeeded: true });
-      return { succeeded: true, club, steps, summary, teamStatus, financialHealth, leagueStatus, warnings };
+      return { succeeded: true, club, steps, summary, teamStatus, financialHealth, leagueStatus, roster, warnings };
     } catch (error) {
       steps.push({
         step: ImportStep.ClubCreated,
@@ -138,7 +146,7 @@ export class ImportHrfUseCase {
         errorCode: error instanceof InvalidClubError ? ImportErrorCode.InvalidClub : ImportErrorCode.Unknown,
         errorDetail: errorMessage(error),
       });
-      return { succeeded: false, steps, summary, teamStatus, financialHealth, leagueStatus, warnings };
+      return { succeeded: false, steps, summary, teamStatus, financialHealth, leagueStatus, roster, warnings };
     }
   }
 }

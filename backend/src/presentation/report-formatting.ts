@@ -27,6 +27,7 @@ const WARNING_MESSAGES: Record<ImportWarningCode, string> = {
   [ImportWarningCode.TeamStatusUnavailable]: 'no se pudo leer el estado del equipo (moral/confianza/entrenamiento)',
   [ImportWarningCode.FinancialHealthUnavailable]: 'no se pudo leer la salud financiera del club',
   [ImportWarningCode.LeagueStatusUnavailable]: 'no se pudo leer la posición en la liga',
+  [ImportWarningCode.RosterUnavailable]: 'no se pudo leer la plantilla de jugadores',
 };
 
 // Groups an unsigned digit string into thousands with ".", Spanish-style
