@@ -368,3 +368,20 @@ Status:
 Accepted.
 
 See: `docs/import-result-design.md`, D-006 (snapshots vs. stable identity), D-012 (persistence not yet designed)
+
+---
+
+## D-022
+
+Date: 2026-09-12
+
+Decision:
+The project's prioritization axis shifts from "how much HRF data is exposed" to "which manager decisions the system enables" (lineup, training, transfer market, financial planning). The architectural principle governing the next stage: deterministic, verifiable rules over already-confirmed data precede any generative AI. No LLM interprets the raw HRF. If an LLM is introduced later, its role is limited to synthesizing/drafting from results a deterministic rules engine already produced and that were manually validated against real data — never to discover the observation itself.
+
+Reason:
+Formalizes, at the product-prioritization level, what `Product.md` ("Command Center", "Decision Transparency") already described from the start but no story had begun building toward — every story delivered so far (Team Status, Financial Health, League Status, comparison, roster) exposes confirmed data, none of them interprets it into a decision. It also extends D-018 (vertical slices) and D-020 (confidence over inference) to a new layer: any observation shown to the manager must be traceable to a deterministic rule and confirmed data, never to a model's interpretation of raw, ambiguous data — that would reintroduce exactly the kind of unconfirmed inference D-019/D-020 already rejected.
+
+Status:
+Accepted.
+
+See: `Product.md` ("Command Center", "Decision Transparency"), D-018, D-019, D-020

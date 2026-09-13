@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.6.0
+
+### Added
+- First rule of the decision-support layer: `injuredPlayerRule` (`backend/src/application/rules/injured-player.rule.ts`), a pure, deterministic function over already-confirmed data (`PlayerSummaryContract.injuryWeeksRemaining`) — no HRF access, no external source, no AI. Reports every player with a confirmed active injury (`weeksRemaining > 0`); a "bruised but playable" player (`weeksRemaining = 0`, per the Hattrick Wiki) is deliberately excluded. See `docs/rule-design.md`.
+- Marks the start of a project priority shift, formalized as D-022: from extracting HRF data to assisting the manager's decisions.
+
+### Not included in this release
+- The rule is not yet wired into `pnpm analyze` — that connection (and any orchestration point for evaluating more than one rule, `evaluateRules` or similar) is deliberately deferred until a second real rule exists to demonstrate the pattern (`docs/evaluate-rules-design.md`, approved but not implemented).
+
+## v0.5.0
+
+### Added
+- `pnpm analyze` now includes a "Plantilla" block: an executive summary (Jugadores/Lesionados/Con amonestaciones acumuladas) followed by one line per player, sorted alphabetically. See `docs/roster-design.md`.
+- A missing per-player field no longer excludes that player from the roster — only "no disponible" for that one field. Only zero usable player sections omits the whole block.
+
 ## v0.4.0
 
 ### Added
